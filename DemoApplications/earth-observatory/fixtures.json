@@ -1,0 +1,47 @@
+{
+  "normal": [
+    {
+      "id": "demo-pacific",
+      "title": "Pacific observation station",
+      "subtitle": "Simulated event",
+      "description": "Depth: 12.4 km. Synthetic data for demonstrating the application.",
+      "meta": "Demo observation",
+      "magnitude": 2.1
+    },
+    {
+      "id": "demo-ridge",
+      "title": "Ocean ridge observation",
+      "subtitle": "Simulated event",
+      "description": "Depth: 8.0 km. Synthetic data for demonstrating the application.",
+      "meta": "Demo observation",
+      "magnitude": 3.2
+    },
+    {
+      "id": "demo-valley",
+      "title": "Continental valley observation",
+      "subtitle": "Simulated event",
+      "description": "Depth: 18.7 km. Synthetic data for demonstrating the application.",
+      "meta": "Demo observation",
+      "magnitude": 1.8
+    }
+  ],
+  "strong": [
+    {
+      "id": "demo-strong-1",
+      "title": "Subduction zone observation",
+      "subtitle": "Simulated event",
+      "description": "Depth: 35.0 km. This is a fictional event, not a live hazard report.",
+      "meta": "Demo observation",
+      "magnitude": 6.4
+    },
+    {
+      "id": "demo-strong-2",
+      "title": "Offshore observation",
+      "subtitle": "Simulated event",
+      "description": "Depth: 22.0 km. This is a fictional event, not a live hazard report.",
+      "meta": "Demo observation",
+      "magnitude": 5.7
+    }
+  ],
+  "empty": []
+}

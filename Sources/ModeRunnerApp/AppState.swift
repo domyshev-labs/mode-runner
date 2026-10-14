@@ -56,19 +56,21 @@ final class AppState: ObservableObject {
     @Published private(set) var stoppingRuns: Set<String> = []
     @Published private(set) var modeActions: [String: LifecycleAction] = [:]
 
-    let configURL: URL
+    @Published private(set) var configURL: URL
+    private let baseConfigURL: URL
     private let relay: EventRelay
     private let supervisor: ProcessSupervisor
     private let preferences: UserDefaults
     private let legacyPreferences: UserDefaults?
-    private var tabOrderKey: String { "projectTabOrder/\(configURL.standardizedFileURL.path)" }
+    private var tabOrderKey: String { "projectTabOrder/\(baseConfigURL.standardizedFileURL.path)" }
     private var catalogTasks: [String: Task<Void, Never>] = [:]
     private var discoveryTask: Task<Void, Never>?
     @Published private(set) var discoveringProcesses = false
 
     init(configURL: URL = ConfigurationLoader.defaultURL, preferences: UserDefaults = .standard,
          legacyPreferences: UserDefaults? = UserDefaults(suiteName: "dev.domyshev.script-mode-runner")) {
-        self.configURL = configURL
+        self.baseConfigURL = configURL
+        self.configURL = ConfigurationLoader.effectiveURL(for: configURL)
         self.preferences = preferences
         self.legacyPreferences = legacyPreferences
         let relay = EventRelay()
@@ -91,8 +93,9 @@ final class AppState: ObservableObject {
     func catalogKey(_ button: RunnerMode, tab: RunnerTab) -> String { "\(tab.id)/\(button.id)" }
 
     func reload() {
+        configURL = ConfigurationLoader.effectiveURL(for: baseConfigURL)
         do {
-            let loaded = try ConfigurationLoader().load(from: configURL)
+            let loaded = try ConfigurationLoader().load(from: baseConfigURL)
             // Keep removed tabs reachable while they still own logs or processes.
             let retained = configuration?.tabs.filter { old in
                 !loaded.tabs.contains { $0.id == old.id } && runs.contains { $0.tabID == old.id }

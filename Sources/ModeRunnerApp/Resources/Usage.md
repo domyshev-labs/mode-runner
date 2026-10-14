@@ -32,6 +32,7 @@ tabs:
 - `command` runs through an interactive login zsh by default, loading your shell's tool setup. Install the tools and project dependencies before running commands.
 - For direct execution, use `executable: /absolute/path/to/program` and `arguments: [arg1, arg2]` instead of `command`. Direct executables inherit the app environment; configure `PATH` when needed.
 - Add `environment` to a script to provide environment variables, for example `environment: {NODE_ENV: development}`.
+- A neighboring `config.overwrite.yaml` replaces `config.yaml` completely when present. Custom files follow the same rule: `custom.overwrite.yml` replaces `custom.yml`. Reload checks again, the menu shows the selected path, and invalid replacements display an error. Remove the replacement to restore the base configuration.
 - Existing `~/.config/script-mode-runner/config.yaml` files are used when the new default file is absent. To choose another file when launching from Terminal, set `MODE_RUNNER_CONFIG=/path/to/config.yaml`.
 
 After saving the file, choose **Reload configuration** in the top-right menu. Hover over that item to see the active configuration path. Reload updates the interface and command catalogs while keeping running processes and logs.

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "normal",
+    "title": "Daily activity",
+    "arguments": [
+      "normal"
+    ]
+  },
+  {
+    "id": "strong",
+    "title": "Strong events",
+    "arguments": [
+      "strong"
+    ]
+  },
+  {
+    "id": "empty",
+    "title": "Empty feed",
+    "arguments": [
+      "empty"
+    ]
+  }
+]

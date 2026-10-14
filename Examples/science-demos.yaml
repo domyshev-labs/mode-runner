@@ -1,0 +1,113 @@
+# Three independent React applications with separate mock servers and seed menus.
+tabs:
+  - id: cosmic-archive
+    title: Cosmic Archive
+    buttons:
+      - id: mock
+        title: Mock
+        on_deactivate:
+          sigint: true
+          sigkill: true
+          timeout: 2s
+        scripts:
+          - id: frontend-mock
+            title: React · :4010
+            command: yarn dev:mock
+            cwd: ../DemoApplications/cosmic-archive
+          - id: mock-server
+            title: Mock API · :4015
+            command: yarn mock
+            cwd: ../DemoApplications/cosmic-archive
+      - id: live
+        title: Live API
+        on_deactivate:
+          sigint: true
+          sigkill: true
+          timeout: 2s
+        scripts:
+          - id: frontend-live
+            title: React · :4010
+            command: yarn dev:live
+            cwd: ../DemoApplications/cosmic-archive
+      - id: seeds
+        title: Seeds
+        align: right
+        cwd: ../DemoApplications/cosmic-archive
+        runner: [yarn, seed]
+        source:
+          type: json_file
+          path: seeds.json
+  - id: mathematical-minds
+    title: Mathematical Minds
+    buttons:
+      - id: mock
+        title: Mock
+        on_deactivate:
+          sigint: true
+          sigkill: true
+          timeout: 2s
+        scripts:
+          - id: frontend-mock
+            title: React · :4020
+            command: yarn dev:mock
+            cwd: ../DemoApplications/mathematical-minds
+          - id: mock-server
+            title: Mock API · :4025
+            command: yarn mock
+            cwd: ../DemoApplications/mathematical-minds
+      - id: live
+        title: Live API
+        on_deactivate:
+          sigint: true
+          sigkill: true
+          timeout: 2s
+        scripts:
+          - id: frontend-live
+            title: React · :4020
+            command: yarn dev:live
+            cwd: ../DemoApplications/mathematical-minds
+      - id: seeds
+        title: Seeds
+        align: right
+        cwd: ../DemoApplications/mathematical-minds
+        runner: [yarn, seed]
+        source:
+          type: json_file
+          path: seeds.json
+  - id: earth-observatory
+    title: Earth Observatory
+    buttons:
+      - id: mock
+        title: Mock
+        on_deactivate:
+          sigint: true
+          sigkill: true
+          timeout: 2s
+        scripts:
+          - id: frontend-mock
+            title: React · :4030
+            command: yarn dev:mock
+            cwd: ../DemoApplications/earth-observatory
+          - id: mock-server
+            title: Mock API · :4035
+            command: yarn mock
+            cwd: ../DemoApplications/earth-observatory
+      - id: live
+        title: Live API
+        on_deactivate:
+          sigint: true
+          sigkill: true
+          timeout: 2s
+        scripts:
+          - id: frontend-live
+            title: React · :4030
+            command: yarn dev:live
+            cwd: ../DemoApplications/earth-observatory
+      - id: seeds
+        title: Seeds
+        align: right
+        cwd: ../DemoApplications/earth-observatory
+        runner: [yarn, seed]
+        source:
+          type: json_file
+          path: seeds.json

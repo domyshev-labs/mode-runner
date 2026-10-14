@@ -3,3 +3,9 @@
 .DS_Store
 *.xcodeproj/
 xcuserdata/
+
+node_modules/
+dist/
+.demo-state/
+*.overwrite.yaml
+*.overwrite.yml

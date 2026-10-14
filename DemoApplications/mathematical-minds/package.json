@@ -1,0 +1,25 @@
+{
+  "name": "mode-runner-mathematical-minds",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "yarn@1.22.22",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev:mock": "vite --mode mock",
+    "dev:live": "vite --mode live",
+    "mock": "node ../shared/mock-server.mjs",
+    "seed": "node ../shared/seed.mjs",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --strictPort"
+  },
+  "dependencies": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "vite": "8.2.2"
+  }
+}

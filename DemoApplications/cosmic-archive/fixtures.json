@@ -1,0 +1,71 @@
+{
+  "moon": [
+    {
+      "id": "apollo-11",
+      "title": "A first step on the Moon",
+      "subtitle": "Apollo 11 · 1969",
+      "description": "A demonstration card about the first crewed lunar landing and the experiments left on the surface.",
+      "meta": "Lunar exploration"
+    },
+    {
+      "id": "artemis",
+      "title": "Returning to the Moon",
+      "subtitle": "Artemis",
+      "description": "A demonstration of a mission card for a new generation of lunar exploration.",
+      "meta": "Mission concept"
+    },
+    {
+      "id": "lunar-science",
+      "title": "Reading the lunar surface",
+      "subtitle": "Planetary science",
+      "description": "Craters and ancient lava plains preserve a record of the early Solar System.",
+      "meta": "Surface research"
+    }
+  ],
+  "mars": [
+    {
+      "id": "perseverance",
+      "title": "Searching an ancient lake bed",
+      "subtitle": "Perseverance",
+      "description": "A rover studies rocks in Jezero crater to investigate the history of water on Mars.",
+      "meta": "Robotic exploration"
+    },
+    {
+      "id": "curiosity",
+      "title": "A moving chemistry laboratory",
+      "subtitle": "Curiosity",
+      "description": "A demonstration card for studying the chemistry and habitability of the Martian surface.",
+      "meta": "Planetary chemistry"
+    },
+    {
+      "id": "ingenuity",
+      "title": "Flight on another world",
+      "subtitle": "Ingenuity",
+      "description": "A small helicopter demonstrated powered, controlled flight in the thin Martian atmosphere.",
+      "meta": "Technology demonstration"
+    }
+  ],
+  "deep-space": [
+    {
+      "id": "webb",
+      "title": "Looking into the early universe",
+      "subtitle": "James Webb Space Telescope",
+      "description": "Infrared observations help astronomers investigate distant galaxies and the birth of stars.",
+      "meta": "Infrared astronomy"
+    },
+    {
+      "id": "hubble",
+      "title": "A universe of galaxies",
+      "subtitle": "Hubble Space Telescope",
+      "description": "A demonstration card showing how deep observations reveal distant galaxies.",
+      "meta": "Deep field"
+    },
+    {
+      "id": "voyager",
+      "title": "Beyond the planets",
+      "subtitle": "Voyager",
+      "description": "Spacecraft observations provide a view of the environment beyond the outer planets.",
+      "meta": "Interstellar exploration"
+    }
+  ]
+}

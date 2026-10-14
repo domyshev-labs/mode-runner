@@ -701,3 +701,29 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     #expect(state.modeActions.isEmpty)
     await state.shutdown()
 }
+
+@MainActor
+@Test func reloadTracksOverwriteCreationAndRemovalWithoutChangingBase() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let base = directory.appending(path: "config.yaml")
+    let replacement = directory.appending(path: "config.overwrite.yaml")
+    let original = "tabs: [{id: base, title: Base, buttons: []}]"
+    try original.write(to: base, atomically: true, encoding: .utf8)
+    let state = AppState(configURL: base)
+    #expect(state.configURL == base)
+    try "tabs: [{id: demo, title: Demo, buttons: []}]".write(to: replacement, atomically: true, encoding: .utf8)
+    state.reload()
+    #expect(state.configURL == replacement)
+    #expect(state.configuration?.tabs.first?.id == "demo")
+    try "tabs: [invalid".write(to: replacement, atomically: true, encoding: .utf8)
+    state.reload()
+    #expect(state.errorMessage?.contains(replacement.path) == true)
+    try FileManager.default.removeItem(at: replacement)
+    state.reload()
+    #expect(state.configURL == base)
+    #expect(state.configuration?.tabs.first?.id == "base")
+    #expect(state.errorMessage == nil)
+    #expect(try String(contentsOf: base, encoding: .utf8) == original)
+}

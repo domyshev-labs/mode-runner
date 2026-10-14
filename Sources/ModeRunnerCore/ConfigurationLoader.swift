@@ -17,22 +17,33 @@ public struct ConfigurationLoader: Sendable {
         let current = homeDirectory.appending(path: ".config/mode-runner/config.yaml")
         let legacy = homeDirectory.appending(path: ".config/script-mode-runner/config.yaml")
         // Keep existing relative paths anchored to the original configuration directory.
-        if !fileManager.fileExists(atPath: current.path), fileManager.fileExists(atPath: legacy.path) {
+        if !fileManager.fileExists(atPath: effectiveURL(for: current, fileManager: fileManager).path),
+           fileManager.fileExists(atPath: effectiveURL(for: legacy, fileManager: fileManager).path) {
             return legacy
         }
         return current
     }
 
+    /// Select a complete local replacement on every load, without changing the base file.
+    public static func effectiveURL(for url: URL, fileManager: FileManager = .default) -> URL {
+        let stem = url.deletingPathExtension()
+        if stem.lastPathComponent.hasSuffix(".overwrite") { return url }
+        var replacement = stem.appendingPathExtension("overwrite")
+        if !url.pathExtension.isEmpty { replacement = replacement.appendingPathExtension(url.pathExtension) }
+        return fileManager.fileExists(atPath: replacement.path) ? replacement : url
+    }
+
     public init() {}
 
     public func load(from url: URL = Self.defaultURL) throws -> RunnerConfiguration {
-        let data = try Data(contentsOf: url)
+        let selectedURL = Self.effectiveURL(for: url)
+        let data = try Data(contentsOf: selectedURL)
         guard let text = String(data: data, encoding: .utf8) else {
             throw CocoaError(.fileReadInapplicableStringEncoding)
         }
         return try YAMLDecoder()
             .decode(RunnerConfiguration.self, from: text)
-            .resolvingRelativePaths(relativeTo: url.deletingLastPathComponent())
+            .resolvingRelativePaths(relativeTo: selectedURL.deletingLastPathComponent())
             .validated()
     }
 }

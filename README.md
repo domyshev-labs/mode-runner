@@ -70,6 +70,12 @@ swift Scripts/generate-icon.swift .build/menu-icon.iconset
 cp .build/menu-icon.iconset/icon_128x128.png Sources/ModeRunnerApp/Resources/MenuBarIcon.png
 ```
 
+## Science demos and local configuration replacement
+
+Three independent React + Vite demos cover space imagery, mathematical reading, and earthquake observations. Launch them through Yarn in Mock or Live API mode, and use Mode Runner's seed menus to change local datasets. See [DemoApplications/README.md](DemoApplications/README.md) for installation and the demonstration flow; [Examples/science-demos.yaml](Examples/science-demos.yaml) provides the configuration.
+
+A neighboring `.overwrite` configuration takes precedence over the selected file: `config.overwrite.yaml` replaces `config.yaml`, and `custom.overwrite.yml` replaces `custom.yml`. The replacement is complete, not merged. It applies to default, legacy, and environment-selected configurations, and is checked again on Reload. The menu displays the selected file's path. Removing the replacement restores the base file; an invalid replacement displays an error. Local overwrite files are ignored by Git.
+
 ## Test applications
 
 `TestApplications` contains three small Yarn projects. The ready-to-use `Examples/test-apps.yaml` configuration creates a tab for each project with two modes:
