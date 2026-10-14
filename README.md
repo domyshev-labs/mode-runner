@@ -52,6 +52,8 @@ published on the project website later.
 2. Build and run the app with `swift run ModeRunner`.
 3. Open the terminal icon in the menu bar.
 
+Click the icon again or click outside the app to dismiss the workspace. Running commands continue while the window is hidden.
+
 The installer creates `~/.mode-runner/config.example.yaml` on a fresh installation. Select a file from the header dropdown; files follow their optional `sort_order`, then their filenames. Each item shows its full path on hover and has a copy-path button. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.
 
 A command can use an `executable`/`arguments` pair or a `command` string executed through a shell. Yarn, npm, Python, local binaries, and other programs are handled the same way.
@@ -266,3 +268,5 @@ Configurations with a top-level integer `sort_order` appear first, ordered by in
 sort_order: 10
 tabs: []
 ```
+
+Use the pin button on a process log tab to keep it visible when switching projects or modes. Pinning preserves the project's process tab order. Pinned tabs from other projects appear after the current project's tabs and include their project's name. Selecting a pinned tab shows its log, and its Start, Stop, and Reload controls operate on the original process. Unpinning restores normal project visibility. Pins last for the current app session and are scoped to the selected configuration. Restarting a configured command carries its pin to the new run, and pinned completed logs are protected from automatic history cleanup. Closing a completed log manually removes its pin.

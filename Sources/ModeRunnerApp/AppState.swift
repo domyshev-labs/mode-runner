@@ -48,6 +48,7 @@ final class AppState: ObservableObject {
     @Published private(set) var activeModes: [String: String] = [:]
     @Published private(set) var logs: [String: ScriptLog] = [:]
     @Published private(set) var runs: [ScriptRun] = []
+    @Published private(set) var pinnedRuns: [String: String] = [:]
     @Published private(set) var catalogs: [String: CatalogState] = [:]
     @Published private(set) var busyTabs: Set<String> = []
     @Published private(set) var transitioningModes: [String: Set<String>] = [:]
@@ -95,11 +96,41 @@ final class AppState: ObservableObject {
     var visibleScripts: [ScriptRun] {
         guard selectedTab != nil else { return [] }
         let context = selectedTabID.flatMap { viewedModes[$0] }
-        let candidates = runs.filter { $0.tabID == selectedTabID && $0.contextModeID == context }
+        let projects = Set(configuration?.tabs.map(\.id) ?? [])
+        let pinned = runs.filter {
+            pinnedRuns[$0.id] == configURL.standardizedFileURL.path && projects.contains($0.tabID)
+        }
+        let local = runs.filter { $0.tabID == selectedTabID && $0.contextModeID == context }
         // A configured script owns one visible log; restarting replaces its displayed run.
         var seen = Set<String>()
-        return candidates.reversed().filter { seen.insert($0.isMenu ? $0.id : "\($0.buttonID)/\($0.script.id)").inserted }.reversed()
+        let latest = local.reversed().filter { seen.insert(processTabKey($0)).inserted }.reversed()
+        seen = []
+        // Keep the project's tab order; pins from other projects or modes follow it.
+        return (latest + pinned).filter { seen.insert(processTabKey($0)).inserted }
     }
+
+    private func processTabKey(_ run: ScriptRun) -> String {
+        run.isMenu ? run.id : "\(run.tabID)/\(run.buttonID)/\(run.script.id)"
+    }
+
+    func isPinned(_ id: String) -> Bool {
+        pinnedRuns[id] == configURL.standardizedFileURL.path
+    }
+
+    func togglePin(_ id: String) {
+        guard visibleScripts.contains(where: { $0.id == id }) else { return }
+        if isPinned(id) { pinnedRuns[id] = nil }
+        else { pinnedRuns[id] = configURL.standardizedFileURL.path }
+        selectVisibleOutput()
+    }
+
+    func processTabLabel(_ run: ScriptRun) -> String {
+        let title = processTabTitle(run.script.title)
+        guard run.tabID != selectedTabID else { return title }
+        let project = configuration?.tabs.first { $0.id == run.tabID }?.title ?? run.tabID
+        return "\(project) · \(title)"
+    }
+
     var selectedRun: ScriptRun? { runs.first { $0.id == selectedOutputID } }
 
     func catalogKey(_ button: RunnerMode, tab: RunnerTab) -> String { "\(tab.id)/\(button.id)" }
@@ -385,6 +416,17 @@ final class AppState: ObservableObject {
         let id = UUID().uuidString
         runs.append(ScriptRun(id: id, tabID: tab.id, batchID: batchID ?? id, buttonID: button.id, script: script, policy: button.onDeactivate, isMenu: isMenu, isSeed: isMenu && button.source?.type != .packageScripts, contextModeID: isMenu ? viewedModes[tab.id] : button.id))
         logs[id] = ScriptLog(status: .starting)
+        if !isMenu {
+            let previousPins = runs.filter {
+                $0.id != id && !$0.isMenu && $0.tabID == tab.id && $0.buttonID == button.id &&
+                $0.script.id == script.id && isPinned($0.id)
+            }.map(\.id)
+            for previous in previousPins {
+                pinnedRuns[previous] = nil
+                if selectedOutputID == previous { selectedOutputID = id }
+            }
+            if !previousPins.isEmpty { pinnedRuns[id] = configURL.standardizedFileURL.path }
+        }
         if selectOutput && selectedTabID == tab.id { selectedOutputID = id }
         pruneHistory()
         return id
@@ -509,6 +551,7 @@ final class AppState: ObservableObject {
 
     func close(_ id: String) {
         guard canClose(id) else { return }
+        pinnedRuns[id] = nil
         runs.removeAll { $0.id == id }
         logs[id] = nil
         selectVisibleOutput()
@@ -540,14 +583,14 @@ final class AppState: ObservableObject {
     private func selectVisibleOutput() {
         let scripts = visibleScripts
         if !scripts.contains(where: { $0.id == selectedOutputID }) {
-            selectedOutputID = scripts.first(where: { !$0.isMenu && logs[$0.id]?.hasDetectionMessage == true })?.id
+            selectedOutputID = scripts.first(where: { $0.tabID == selectedTabID && !$0.isMenu && logs[$0.id]?.hasDetectionMessage == true })?.id
                 ?? scripts.last?.id
         }
     }
 
     private func pruneHistory() {
         for tabID in Set(runs.map(\.tabID)) {
-            let finished = runs.filter { $0.tabID == tabID && logs[$0.id]?.status?.isRunning != true && $0.id != selectedOutputID }
+            let finished = runs.filter { $0.tabID == tabID && logs[$0.id]?.status?.isRunning != true && $0.id != selectedOutputID && pinnedRuns[$0.id] == nil }
             for run in finished.prefix(max(0, finished.count - 20)) { close(run.id) }
         }
         let budget = 100 * 1024 * 1024

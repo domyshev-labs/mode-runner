@@ -317,11 +317,21 @@ struct MainPopoverView: View {
                                 Button { state.selectedOutputID = run.id } label: {
                                     HStack(spacing: 6) {
                                         Circle().fill(statusColor(state.logs[run.id]?.status)).frame(width: 6, height: 6).fixedSize()
-                                        Text(processTabTitle(run.script.title)).lineLimit(1).truncationMode(.tail)
+                                        Text(state.processTabLabel(run)).lineLimit(1).truncationMode(.tail)
                                     }
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityAddTraits(state.selectedOutputID == run.id ? [.isSelected] : [])
+                                Button { state.togglePin(run.id) } label: {
+                                    Image(systemName: state.isPinned(run.id) ? "pin.fill" : "pin")
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(state.isPinned(run.id) ? Color.accentColor : Color.secondary)
+                                }
+                                .fixedSize()
+                                .buttonStyle(.plain)
+                                .help(state.isPinned(run.id) ? "Unpin process tab" : "Keep this process tab visible across projects")
+                                .accessibilityLabel((state.isPinned(run.id) ? "Unpin " : "Pin ") + state.processTabLabel(run))
+                                .accessibilityValue(state.isPinned(run.id) ? "Pinned" : "Not pinned")
                                 if state.canClose(run.id) {
                                     Button { state.close(run.id) } label: { Image(systemName: "xmark").font(.caption2) }
                                         .fixedSize()

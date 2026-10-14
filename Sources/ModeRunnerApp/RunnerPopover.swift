@@ -7,6 +7,7 @@ final class RunnerPopover: NSObject, NSPopoverDelegate {
     static let rightEdgeInset: CGFloat = 20
     private(set) var popover = NSPopover()
     private var needsRebuild = true
+    private var outsideClickMonitor: Any?
 
     override init() {
         super.init()
@@ -54,6 +55,27 @@ final class RunnerPopover: NSObject, NSPopoverDelegate {
     func popoverDidShow(_ notification: Notification) {
         // Apply the inset again after AppKit finishes its presentation animation.
         insetFromRightEdge()
+        stopMonitoringOutsideClicks()
+        // Transient dismissal can stop working after native menus change focus.
+        // Global mouse events exclude this app, so its menus remain interactive.
+        outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.popover.performClose(nil)
+            }
+        }
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        stopMonitoringOutsideClicks()
+    }
+
+    private func stopMonitoringOutsideClicks() {
+        if let outsideClickMonitor {
+            NSEvent.removeMonitor(outsideClickMonitor)
+            self.outsideClickMonitor = nil
+        }
     }
 
     static func insetOrigin(for frame: NSRect, visibleFrame: NSRect) -> NSPoint {
