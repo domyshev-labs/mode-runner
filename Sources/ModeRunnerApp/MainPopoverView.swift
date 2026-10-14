@@ -42,6 +42,13 @@ struct MainPopoverView: View {
         .frame(width: RunnerPopover.contentSize.width, height: RunnerPopover.contentSize.height)
         .background(windowBackground)
         .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: state.selectedTabID)
+        .task {
+            while !Task.isCancelled {
+                state.refreshOverwritePresence()
+                do { try await Task.sleep(for: .seconds(1)) }
+                catch { break }
+            }
+        }
         .onDisappear {
             draggedProjectID = nil
             dropTargetProjectID = nil
@@ -107,6 +114,11 @@ struct MainPopoverView: View {
             Spacer()
             if state.discoveringProcesses {
                 ProgressView().controlSize(.small).help("Finding running processes")
+            }
+            if let overwriteURL = state.overwriteURL {
+                OverwriteConfigurationBanner(fileURL: overwriteURL,
+                                             isEnabled: Binding(get: { state.overwriteEnabled },
+                                                                set: { state.setOverwriteEnabled($0) }))
             }
             RunnerActionsMenu(configURL: state.configURL, reload: { state.reload() }) { action in
                 (NSApplication.shared.delegate as? AppDelegate)?.request(action)

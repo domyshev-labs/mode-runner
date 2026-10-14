@@ -72,3 +72,5 @@ MODE_RUNNER_CONFIG="$PWD/Examples/config.yaml" swift run ModeRunner
 ```
 
 The base configuration remains untouched. Local `*.overwrite.yaml` and `*.overwrite.yml` files, seed state, build output, and `node_modules` are ignored by Git. The committed `Examples/science-demos.yaml` is the reusable configuration.
+
+The header shows an **Overwrite detected** banner to the left of the actions menu whenever the replacement file exists. Its switch controls whether the replacement is applied and reloads the configuration immediately. Turning the switch off keeps the banner visible and loads the base file. The preference is saved separately for each base configuration. File presence is checked every second while the popover is visible; creating or removing the replacement updates the banner and reloads the configuration. Only projects from the selected configuration appear in the window. Switching configurations does not stop existing processes; their logs remain internal and reappear only if their project is in the selected configuration. Invalid configurations display an error without keeping the previous project list.

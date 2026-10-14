@@ -168,3 +168,17 @@ import Testing
     #expect(ConfigurationLoader.defaultURL(environment: ["MODE_RUNNER_CONFIG": legacy.path], homeDirectory: home) == legacy)
     #expect(try ConfigurationLoader().load(from: legacy).tabs.isEmpty)
 }
+
+@Test func disabledOverwriteLoadsBaseDespitePresentInvalidReplacement() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let base = directory.appending(path: "config.yaml")
+    let replacement = directory.appending(path: "config.overwrite.yaml")
+    try "tabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
+    try "tabs: [invalid".write(to: replacement, atomically: true, encoding: .utf8)
+    #expect(ConfigurationLoader.availableOverwriteURL(for: base) == replacement)
+    #expect(ConfigurationLoader.effectiveURL(for: base, applyOverwrite: false) == base)
+    #expect(try ConfigurationLoader().load(from: base, applyOverwrite: false).tabs.first?.id == "base")
+    #expect(throws: (any Error).self) { try ConfigurationLoader().load(from: base) }
+}

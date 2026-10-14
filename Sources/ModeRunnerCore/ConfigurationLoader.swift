@@ -24,19 +24,29 @@ public struct ConfigurationLoader: Sendable {
         return current
     }
 
-    /// Select a complete local replacement on every load, without changing the base file.
-    public static func effectiveURL(for url: URL, fileManager: FileManager = .default) -> URL {
+    public static func overwriteURL(for url: URL) -> URL {
         let stem = url.deletingPathExtension()
         if stem.lastPathComponent.hasSuffix(".overwrite") { return url }
         var replacement = stem.appendingPathExtension("overwrite")
         if !url.pathExtension.isEmpty { replacement = replacement.appendingPathExtension(url.pathExtension) }
-        return fileManager.fileExists(atPath: replacement.path) ? replacement : url
+        return replacement
+    }
+
+    public static func availableOverwriteURL(for url: URL, fileManager: FileManager = .default) -> URL? {
+        let replacement = overwriteURL(for: url)
+        return fileManager.fileExists(atPath: replacement.path) ? replacement : nil
+    }
+
+    /// Select a complete local replacement on every load, without changing the base file.
+    public static func effectiveURL(for url: URL, applyOverwrite: Bool = true,
+                                    fileManager: FileManager = .default) -> URL {
+        applyOverwrite ? (availableOverwriteURL(for: url, fileManager: fileManager) ?? url) : url
     }
 
     public init() {}
 
-    public func load(from url: URL = Self.defaultURL) throws -> RunnerConfiguration {
-        let selectedURL = Self.effectiveURL(for: url)
+    public func load(from url: URL = Self.defaultURL, applyOverwrite: Bool = true) throws -> RunnerConfiguration {
+        let selectedURL = Self.effectiveURL(for: url, applyOverwrite: applyOverwrite)
         let data = try Data(contentsOf: selectedURL)
         guard let text = String(data: data, encoding: .utf8) else {
             throw CocoaError(.fileReadInapplicableStringEncoding)

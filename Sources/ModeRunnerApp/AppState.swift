@@ -57,11 +57,14 @@ final class AppState: ObservableObject {
     @Published private(set) var modeActions: [String: LifecycleAction] = [:]
 
     @Published private(set) var configURL: URL
+    @Published private(set) var overwriteURL: URL?
+    @Published private(set) var overwriteEnabled: Bool
     private let baseConfigURL: URL
     private let relay: EventRelay
     private let supervisor: ProcessSupervisor
     private let preferences: UserDefaults
     private let legacyPreferences: UserDefaults?
+    private var overwritePreferenceKey: String { "applyOverwrite/\(baseConfigURL.standardizedFileURL.path)" }
     private var tabOrderKey: String { "projectTabOrder/\(baseConfigURL.standardizedFileURL.path)" }
     private var catalogTasks: [String: Task<Void, Never>] = [:]
     private var discoveryTask: Task<Void, Never>?
@@ -70,7 +73,10 @@ final class AppState: ObservableObject {
     init(configURL: URL = ConfigurationLoader.defaultURL, preferences: UserDefaults = .standard,
          legacyPreferences: UserDefaults? = UserDefaults(suiteName: "dev.domyshev.script-mode-runner")) {
         self.baseConfigURL = configURL
-        self.configURL = ConfigurationLoader.effectiveURL(for: configURL)
+        let preferenceKey = "applyOverwrite/\(configURL.standardizedFileURL.path)"
+        let enabled = preferences.object(forKey: preferenceKey) as? Bool ?? true
+        self.overwriteEnabled = enabled
+        self.configURL = ConfigurationLoader.effectiveURL(for: configURL, applyOverwrite: enabled)
         self.preferences = preferences
         self.legacyPreferences = legacyPreferences
         let relay = EventRelay()
@@ -82,6 +88,7 @@ final class AppState: ObservableObject {
 
     var selectedTab: RunnerTab? { configuration?.tabs.first { $0.id == selectedTabID } }
     var visibleScripts: [ScriptRun] {
+        guard selectedTab != nil else { return [] }
         let context = selectedTabID.flatMap { viewedModes[$0] }
         let candidates = runs.filter { $0.tabID == selectedTabID && $0.contextModeID == context }
         // A configured script owns one visible log; restarting replaces its displayed run.
@@ -92,15 +99,23 @@ final class AppState: ObservableObject {
 
     func catalogKey(_ button: RunnerMode, tab: RunnerTab) -> String { "\(tab.id)/\(button.id)" }
 
+    func setOverwriteEnabled(_ enabled: Bool) {
+        guard overwriteEnabled != enabled else { return }
+        overwriteEnabled = enabled
+        preferences.set(enabled, forKey: overwritePreferenceKey)
+        reload()
+    }
+
+    func refreshOverwritePresence() {
+        if overwriteURL != ConfigurationLoader.availableOverwriteURL(for: baseConfigURL) { reload() }
+    }
+
     func reload() {
-        configURL = ConfigurationLoader.effectiveURL(for: baseConfigURL)
+        overwriteURL = ConfigurationLoader.availableOverwriteURL(for: baseConfigURL)
+        configURL = ConfigurationLoader.effectiveURL(for: baseConfigURL, applyOverwrite: overwriteEnabled)
         do {
-            let loaded = try ConfigurationLoader().load(from: baseConfigURL)
-            // Keep removed tabs reachable while they still own logs or processes.
-            let retained = configuration?.tabs.filter { old in
-                !loaded.tabs.contains { $0.id == old.id } && runs.contains { $0.tabID == old.id }
-            } ?? []
-            let tabs = loaded.tabs + retained
+            let loaded = try ConfigurationLoader().load(from: baseConfigURL, applyOverwrite: overwriteEnabled)
+            let tabs = loaded.tabs
             let savedOrder = preferences.stringArray(forKey: tabOrderKey)
                 ?? legacyPreferences?.stringArray(forKey: tabOrderKey) ?? []
             if preferences.stringArray(forKey: tabOrderKey) == nil, !savedOrder.isEmpty {
@@ -126,7 +141,17 @@ final class AppState: ObservableObject {
             }
             selectVisibleOutput()
             discoverExistingProcesses()
-        } catch { errorMessage = "\(configURL.path)\n\(error.localizedDescription)" }
+        } catch {
+            discoveryTask?.cancel()
+            discoveringProcesses = false
+            for task in catalogTasks.values { task.cancel() }
+            catalogTasks = [:]
+            catalogs = [:]
+            configuration = nil
+            selectedTabID = nil
+            selectedOutputID = nil
+            errorMessage = "\(configURL.path)\n\(error.localizedDescription)"
+        }
     }
 
     private func discoverExistingProcesses() {

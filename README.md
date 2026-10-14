@@ -76,6 +76,8 @@ Three independent React + Vite demos cover space imagery, mathematical reading, 
 
 A neighboring `.overwrite` configuration takes precedence over the selected file: `config.overwrite.yaml` replaces `config.yaml`, and `custom.overwrite.yml` replaces `custom.yml`. The replacement is complete, not merged. It applies to default, legacy, and environment-selected configurations, and is checked again on Reload. The menu displays the selected file's path. Removing the replacement restores the base file; an invalid replacement displays an error. Local overwrite files are ignored by Git.
 
+The header shows an **Overwrite detected** banner to the left of the actions menu whenever the replacement file exists. Its switch controls whether the replacement is applied and reloads the configuration immediately. Turning the switch off keeps the banner visible and loads the base file. The preference is saved separately for each base configuration. File presence is checked every second while the popover is visible; creating or removing the replacement updates the banner and reloads the configuration. Only projects from the selected configuration appear in the window. Switching configurations does not stop existing processes; their logs remain internal and reappear only if their project is in the selected configuration. Invalid configurations display an error without keeping the previous project list.
+
 ## Test applications
 
 `TestApplications` contains three small Yarn projects. The ready-to-use `Examples/test-apps.yaml` configuration creates a tab for each project with two modes:
@@ -259,5 +261,6 @@ MODE_RUNNER_CONFIG="$PWD/Examples/dropdowns.yaml" swift run ModeRunner
 The demo seed runner only prints arguments; it does not modify data. Completed
 history is limited to 20 unselected runs per project tab (plus a selected log).
 Each log retains at most 5 MB, and a 100 MB shared budget trims older output when
-necessary. Reload keeps running processes and their logs, including removed
-project tabs that still own logs when the configuration is reloaded.
+necessary. Reload keeps running processes and their logs internally, but the project list
+contains only projects from the selected configuration. Removed projects are
+hidden even if their processes are still running or they have saved logs.
