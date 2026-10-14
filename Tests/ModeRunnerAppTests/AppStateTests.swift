@@ -45,7 +45,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     let config = dir.appending(path: "config.yaml")
     try yaml.write(to: config, atomically: true, encoding: .utf8)
     try #"{"scripts":{"build":"echo build"}}"#.write(to: dir.appending(path: "package.json"), atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let server = tab.buttons[0]
@@ -97,7 +97,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: server, title: Server, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let primary = tab.buttons[0]
@@ -159,7 +159,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: one, title: One, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let primary = tab.buttons[0]
@@ -203,7 +203,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
                 arguments: [-c, 'exit 7']
     """
     try yaml.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -240,7 +240,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     """
     let config = dir.appending(path: "config.yaml")
     try yaml.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -290,7 +290,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
                 arguments: [0]
     """
     try yaml.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -321,7 +321,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
               - {id: dev, title: Dev, executable: /bin/sleep, arguments: [30]}
               - {id: backend, title: Backend, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     state.toggle(tab.buttons[0], in: tab)
@@ -362,7 +362,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
               - {id: frontend, title: Frontend, executable: /bin/sh, arguments: [-c, 'echo ready; exec sleep 30']}
               - {id: backend, title: Backend, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -409,7 +409,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: server, title: Server, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -451,10 +451,11 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     try await waitUntil { state.busyTabs.isEmpty && state.runningMode(in: tab)?.id == "other" }
     state.selectMode(button, in: tab)
     state.selectedOutputID = frontend.id
-    #expect(!state.canStartSelected)
+    #expect(state.canStartSelected)
     state.startSelected()
-    #expect(state.startingRuns.isEmpty)
-    #expect(state.logs[frontend.id]?.status?.isRunning == false)
+    try await waitUntil { state.busyTabs.isEmpty && state.logs[frontend.id]?.status?.isRunning == true }
+    #expect(state.logs[backend.id]?.status?.isRunning == false)
+    #expect(state.runs.filter { $0.buttonID == "other" }.allSatisfy { state.logs[$0.id]?.status?.isRunning == false })
     await state.shutdown()
 }
 
@@ -479,7 +480,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             source: {type: json_file, path: seeds.json}
             on_deactivate: {sigkill: true}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -528,7 +529,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: server, title: Server, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let primary = tab.buttons[0]
@@ -572,7 +573,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
         try ("tabs:\n" + tabs).write(to: url, atomically: true, encoding: .utf8)
     }
     try writeTabs(["one", "two", "three"], to: config)
-    let state = AppState(configURL: config, preferences: preferences)
+    let state = AppState(requireStopConfirmation: false, configURL: config, preferences: preferences)
     state.selectedTabID = "two"
     #expect(state.moveTab("one", to: "three"))
     #expect(state.configuration?.tabs.map(\.id) == ["two", "three", "one"])
@@ -584,14 +585,14 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     #expect(state.moveTab("three", to: "one"))
     state.reload()
     #expect(state.configuration?.tabs.map(\.id) == ["three", "one", "two"])
-    let relaunched = AppState(configURL: config, preferences: preferences)
+    let relaunched = AppState(requireStopConfirmation: false, configURL: config, preferences: preferences)
     #expect(relaunched.configuration?.tabs.map(\.id) == ["three", "one", "two"])
     try writeTabs(["two", "four", "three"], to: config)
     relaunched.reload()
     #expect(relaunched.configuration?.tabs.map(\.id) == ["three", "two", "four"])
     let otherConfig = directory.appending(path: "other.yaml")
     try writeTabs(["two", "three"], to: otherConfig)
-    let independent = AppState(configURL: otherConfig, preferences: preferences)
+    let independent = AppState(requireStopConfirmation: false, configURL: otherConfig, preferences: preferences)
     #expect(independent.configuration?.tabs.map(\.id) == ["two", "three"])
 }
 
@@ -631,7 +632,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: server, title: Server, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let mock = tab.buttons[0]
@@ -688,7 +689,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     let example = directory.appending(path: "config.example.yaml")
     try "tabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
     try "tabs: [{id: demo, title: Demo, buttons: []}]".write(to: example, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: base, preferences: preferences)
+    let state = AppState(requireStopConfirmation: false, configURL: base, preferences: preferences)
     #expect(state.configurationFiles == [base, example])
     state.selectConfiguration(example)
     #expect(state.configURL == example)
@@ -717,7 +718,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     defer { try? FileManager.default.removeItem(at: directory) }
     let example = directory.appending(path: "config.example.yaml")
     try "tabs: [{id: demo, title: Demo, buttons: []}]".write(to: example, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: directory.appending(path: "config.yaml"))
+    let state = AppState(requireStopConfirmation: false, configURL: directory.appending(path: "config.yaml"))
     #expect(state.configURL == example)
     #expect(state.configuration?.tabs.first?.id == "demo")
     let coordinator = ConfigurationSelector.Coordinator()
@@ -748,7 +749,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts: [{id: server, title: Server, executable: /bin/sleep, arguments: [60]}]
     """.write(to: base, atomically: true, encoding: .utf8)
     try "tabs: [{id: cosmic, title: Cosmic, buttons: []}]".write(to: example, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: base)
+    let state = AppState(requireStopConfirmation: false, configURL: base)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     state.startMode(tab.buttons[0], in: tab)
@@ -778,7 +779,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     let ringcentral = directory.appending(path: "config.ringcentral.yaml")
     try "tabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
     try "sort_order: 0\ntabs: []".write(to: ringcentral, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: base)
+    let state = AppState(requireStopConfirmation: false, configURL: base)
     #expect(state.configurationFiles == [ringcentral, base])
     #expect(state.configURL == base)
     try "sort_order: -1\ntabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)

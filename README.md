@@ -270,3 +270,7 @@ tabs: []
 ```
 
 Use the pin button on a process log tab to keep it visible when switching projects or modes. Pinning preserves the project's process tab order. Pinned tabs from other projects appear after the current project's tabs and include their project's name. Selecting a pinned tab shows its log, and its Start, Stop, and Reload controls operate on the original process. Unpinning restores normal project visibility. Pins last for the current app session and are scoped to the selected configuration. Restarting a configured command carries its pin to the new run, and pinned completed logs are protected from automatic history cleanup. Closing a completed log manually removes its pin.
+
+Pinned processes keep running when starting another mode. A conflicting port in a pinned process blocks the entire launch before any processes are stopped; the warning identifies the port, process, and original project. Explicit Stop and Reload actions still control pinned processes. Returning to a mode reuses its running pinned commands.
+
+Switching modes requires confirmation before stopping unpinned processes, with the running mode name and a list of affected commands. An individual start asks to stop only unpinned commands occupying its configured port; other ports remain running. Cancel preserves existing processes and logs. Confirm stops the listed commands and continues the requested launch.

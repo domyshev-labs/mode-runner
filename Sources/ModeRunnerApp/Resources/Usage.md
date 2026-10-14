@@ -47,8 +47,8 @@ After saving the file, choose **Reload configuration** in the top-right menu. Ho
 
 ## Read and control logs
 
-- Select a command's log tab to see its output and status. Ports appear as `command • 3015`. Titles stay fully visible while the tabs fit; longer titles shorten with an ellipsis when space is limited. Hover over a tab for aligned `command:` and `port:` rows showing the launch command and configured port. Scroll horizontally when there are too many tabs to fit comfortably.
-- **Stop** stops the selected command. **Reload** restarts only that command with fresh output. **Start** runs a stopped or completed command again when compatible with the current mode.
+- Select a command's log tab to see its output and status. Ports appear as `command • 3015`. Titles stay fully visible while the tabs fit; longer titles shorten with an ellipsis when space is limited. Hover over a tab for aligned `mode:`, `command:`, and `port:` rows showing the launch command and configured port. Scroll horizontally when there are too many tabs to fit comfortably.
+- **Stop** stops the selected command. **Reload** restarts only that command with fresh output. **Start** runs only the selected stopped or completed command. If its configured port is occupied by an unpinned command in another mode, a confirmation lists that command before stopping it. Commands on other ports and pinned processes keep running; a pinned port conflict cancels the start before anything is stopped.
 - **Clear** clears the selected output. Configured mode command tabs stay available even after stopping or completing. Only completed command-menu and seed log tabs have a close control.
 - Click HTTP or HTTPS links in output to open them in your default browser. A running process's latest detected URL also appears below its status.
 - Output is kept in memory and bounded: up to 5 MB per process and 100 MB shared across logs. Older output may be discarded; logs are not restored after quitting.
@@ -101,3 +101,7 @@ tabs: []
 ```
 
 Use the pin button on a process log tab to keep it visible when switching projects or modes. Pinning preserves the project's process tab order. Pinned tabs from other projects appear after the current project's tabs and include their project's name. Selecting a pinned tab shows its log, and its Start, Stop, and Reload controls operate on the original process. Unpinning restores normal project visibility. Pins last for the current app session and are scoped to the selected configuration. Restarting a configured command carries its pin to the new run, and pinned completed logs are protected from automatic history cleanup. Closing a completed log manually removes its pin.
+
+Pinned processes keep running when starting another mode. A conflicting port in a pinned process blocks the entire launch before any processes are stopped; the warning identifies the port, process, and original project. Explicit Stop and Reload actions still control pinned processes. Returning to a mode reuses its running pinned commands.
+
+Before starting a different mode, a confirmation names the running mode and lists every unpinned process that will be stopped. Cancel leaves the current processes running. Confirm stops the listed processes and launches the new mode. For an individual process with a configured port, only conflicting unpinned processes are stopped after confirmation. Commands without a configured port use the mode change confirmation.

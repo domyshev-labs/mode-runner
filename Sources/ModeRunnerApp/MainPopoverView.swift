@@ -52,6 +52,33 @@ struct MainPopoverView: View {
         .onDisappear {
             draggedProjectID = nil
             dropTargetProjectID = nil
+            state.resolveStopConfirmation(false)
+        }
+        .sheet(item: $state.pendingStopConfirmation, onDismiss: {
+            state.resolveStopConfirmation(false)
+        }) { confirmation in
+            VStack(alignment: .leading, spacing: 16) {
+                Label("Confirm process stop", systemImage: "exclamationmark.triangle")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                Text(confirmation.message).fixedSize(horizontal: false, vertical: true)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(confirmation.processes.enumerated()), id: \.offset) { _, process in
+                            Text(verbatim: "• " + process).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .frame(maxHeight: 150)
+                HStack {
+                    Spacer()
+                    Button("Cancel") { state.resolveStopConfirmation(false) }
+                        .keyboardShortcut(.cancelAction)
+                    Button("Confirm") { state.resolveStopConfirmation(true) }
+                        .keyboardShortcut(.defaultAction)
+                }
+            }
+            .padding(28)
+            .frame(width: 440)
         }
         .sheet(item: $actions.pendingAction, onDismiss: {
             actions.finishConfirmation { action, terminate in
@@ -343,7 +370,7 @@ struct MainPopoverView: View {
                             .frame(height: 22)
                             .runnerGlass(radius: 7, tint: state.selectedOutputID == run.id ? .accentColor.opacity(0.18) : nil,
                                          interactive: true)
-                            .background(ProcessTabTooltip(script: run.script)).id(run.id)
+                            .background(ProcessTabTooltip(script: run.script, mode: state.processModeTitle(run))).id(run.id)
                         }
                       }
                       .padding(2)
