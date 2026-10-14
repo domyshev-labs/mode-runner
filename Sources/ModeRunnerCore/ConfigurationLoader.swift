@@ -26,11 +26,26 @@ public struct ConfigurationLoader: Sendable {
             let matches = name == "config.yaml" ||
                 (name.hasPrefix("config.") && name.hasSuffix(".yaml") && name.count > "config..yaml".count)
             return matches && (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true
-        }.map { directory.appending(path: $0.lastPathComponent) }.sorted { left, right in
-            if left.lastPathComponent == "config.yaml" { return right.lastPathComponent != "config.yaml" }
-            if right.lastPathComponent == "config.yaml" { return false }
-            return left.lastPathComponent < right.lastPathComponent
-        }
+        }.map { directory.appending(path: $0.lastPathComponent) }.map { url in
+            (url: url, order: sortOrder(for: url))
+        }.sorted { left, right in
+            switch (left.order, right.order) {
+            case let (.some(leftOrder), .some(rightOrder)) where leftOrder != rightOrder:
+                return leftOrder < rightOrder
+            case (.some, .none): return true
+            case (.none, .some): return false
+            default: break
+            }
+            if left.url.lastPathComponent == "config.yaml" { return right.url.lastPathComponent != "config.yaml" }
+            if right.url.lastPathComponent == "config.yaml" { return false }
+            return left.url.lastPathComponent < right.url.lastPathComponent
+        }.map(\.url)
+    }
+
+    private static func sortOrder(for url: URL) -> Int? {
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        // Invalid files remain selectable so their load error can be shown.
+        return (try? YAMLDecoder().decode(ConfigurationSortMetadata.self, from: text))?.sortOrder
     }
 
     public init() {}
@@ -45,4 +60,11 @@ public struct ConfigurationLoader: Sendable {
             .resolvingRelativePaths(relativeTo: url.deletingLastPathComponent())
             .validated()
     }
+}
+
+
+private struct ConfigurationSortMetadata: Decodable {
+    let sortOrder: Int?
+
+    enum CodingKeys: String, CodingKey { case sortOrder = "sort_order" }
 }

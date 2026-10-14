@@ -10,7 +10,7 @@ struct ConfigurationSelector: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> NSPopUpButton {
-        let button = NSPopUpButton(frame: .zero, pullsDown: true)
+        let button = NSPopUpButton(frame: .zero, pullsDown: false)
         button.bezelStyle = .rounded
         button.isBordered = false
         button.font = .systemFont(ofSize: 11, weight: .medium)
@@ -20,20 +20,29 @@ struct ConfigurationSelector: NSViewRepresentable {
 
     func updateNSView(_ button: NSPopUpButton, context: Context) {
         context.coordinator.parent = self
-        let menu = context.coordinator.makeMenu()
-        let title = files.isEmpty ? "No configurations" : selectedURL.lastPathComponent
-        let heading = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        heading.isHidden = true
-        menu.insertItem(heading, at: 0)
-        button.menu = menu
-        button.toolTip = files.isEmpty ? "Add config.yaml or config.{name}.yaml in \(selectedURL.deletingLastPathComponent().path)" : selectedURL.path
-        button.setAccessibilityValue(title)
-        button.isEnabled = !files.isEmpty
+        context.coordinator.update(button)
     }
 
     @MainActor
     final class Coordinator: NSObject, NSMenuDelegate {
         var parent: ConfigurationSelector?
+
+        func update(_ button: NSPopUpButton) {
+            guard let parent else { return }
+            let menu = makeMenu()
+            button.menu = menu
+            if !menu.items.isEmpty {
+                let index = menu.items.firstIndex { ($0.representedObject as? URL) == parent.selectedURL } ?? 0
+                button.selectItem(at: index)
+            } else {
+                button.cell?.title = "No configurations"
+            }
+            button.toolTip = parent.files.isEmpty
+                ? "Add config.yaml or config.{name}.yaml in \(parent.selectedURL.deletingLastPathComponent().path)"
+                : parent.selectedURL.path
+            button.setAccessibilityValue(parent.files.isEmpty ? "No configurations" : parent.selectedURL.lastPathComponent)
+            button.isEnabled = !parent.files.isEmpty
+        }
 
         func makeMenu() -> NSMenu {
             let menu = NSMenu()
@@ -63,8 +72,6 @@ struct ConfigurationSelector: NSViewRepresentable {
         @objc func selectItem(_ sender: NSMenuItem) {
             if let url = sender.representedObject as? URL { parent?.select(url) }
         }
-
-
     }
 }
 
@@ -86,8 +93,10 @@ final class ConfigurationMenuRow: NSView {
         title.toolTip = url.path
         title.setAccessibilityLabel(url.lastPathComponent)
         addSubview(title)
-        let copy = NSButton(image: NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: "Copy configuration path")!,
-                            target: self, action: #selector(copyPath))
+        let copyImage = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: "Copy configuration path")!
+        copyImage.size = NSSize(width: max(1, copyImage.size.width - 2), height: max(1, copyImage.size.height - 2))
+        let copy = NSButton(image: copyImage, target: self, action: #selector(copyPath))
+        copy.imageScaling = .scaleProportionallyDown
         copy.frame = NSRect(x: 301, y: 3, width: 28, height: 26)
         copy.isBordered = false
         copy.toolTip = "Copy path: \(url.path)"

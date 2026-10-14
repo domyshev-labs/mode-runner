@@ -138,7 +138,7 @@ final class AppState: ObservableObject {
                 let left = positions[$0.element.id] ?? savedOrder.count + $0.offset
                 let right = positions[$1.element.id] ?? savedOrder.count + $1.offset
                 return left < right
-            }.map(\.element))
+            }.map(\.element), sortOrder: loaded.sortOrder)
             errorMessage = nil
             if !configuration!.tabs.contains(where: { $0.id == selectedTabID }) { selectedTabID = configuration?.tabs.first?.id }
             for task in catalogTasks.values { task.cancel() }
@@ -273,7 +273,7 @@ final class AppState: ObservableObject {
               let target = tabs.firstIndex(where: { $0.id == targetID }), source != target else { return false }
         let tab = tabs.remove(at: source)
         tabs.insert(tab, at: target)
-        configuration = RunnerConfiguration(tabs: tabs)
+        configuration = RunnerConfiguration(tabs: tabs, sortOrder: configuration?.sortOrder)
         preferences.set(tabs.map(\.id), forKey: tabOrderKey)
         return true
     }

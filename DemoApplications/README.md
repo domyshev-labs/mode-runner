@@ -62,7 +62,7 @@ node --test DemoApplications/shared/demo.test.mjs
 
 ## Configuration selection
 
-Mode Runner discovers `~/.mode-runner/config.yaml` and `~/.mode-runner/config.{name}.yaml`. The selector shows the base filename first, then named files alphabetically. Hover a file to see its complete path, or use the copy button beside it. Selecting a file loads only that file; configurations are never merged and there is no automatic overwrite behavior.
+Mode Runner discovers `~/.mode-runner/config.yaml` and `~/.mode-runner/config.{name}.yaml`. The selector sorts by the optional `sort_order`, then filename. Hover a file to see its complete path, or use the copy button beside it. Selecting a file loads only that file; configurations are never merged and there is no automatic overwrite behavior.
 
 On a fresh installation the installer creates only `config.example.yaml` and copies these demo sources to `~/.mode-runner/DemoApplications/`. Install dependencies separately in each copied application with `yarn install --frozen-lockfile`. The example can be deleted manually and will not be recreated on later installs.
 
@@ -75,3 +75,10 @@ cp Examples/config.example.yaml ~/.mode-runner/config.example.yaml
 ```
 
 `node_modules`, build output, and seed state are ignored by Git. The committed `Examples/config.example.yaml` is the reusable demo configuration.
+
+Configurations with a top-level integer `sort_order` appear first, ordered by increasing value. Files without this property appear below all explicitly ordered files. Equal priorities sort by filename, with `config.yaml` first within that group. Negative values are supported. The list updates while the popover is visible when editing priorities changes the order.
+
+```yaml
+sort_order: 10
+tabs: []
+```

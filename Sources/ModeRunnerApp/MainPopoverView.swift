@@ -120,6 +120,7 @@ struct MainPopoverView: View {
                                   menuVisibilityChanged: { open in
                                       (NSApplication.shared.delegate as? AppDelegate)?.configurationMenuChanged(open: open)
                                   })
+                .padding(.leading, 8)
                 .frame(width: 185, height: 26)
                 .runnerGlass(radius: 8, interactive: true)
             RunnerActionsMenu(configURL: state.configURL, reload: { state.reload() }) { action in

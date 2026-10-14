@@ -89,4 +89,11 @@ Existing processes display a detection message instead of captured output: their
 For building, installing, and updating the app, see the project's [installation guide](https://github.com/domyshev-labs/script-mode-runner/blob/master/INSTALL.md). Source code and configuration examples are on [GitHub](https://github.com/domyshev-labs/script-mode-runner).
 
 
-The configuration selector to the left of the actions menu lists `config.yaml` first and named files `config.{name}.yaml` alphabetically from `~/.mode-runner/`. Hover a filename to see its full path; use its copy button to copy the path. Selection is remembered, and adding or removing files updates the list while the popover is visible. Only projects from the selected file are shown. The installer provides `config.example.yaml` once on a fresh installation. It can be deleted manually. There is no overwrite mechanism: `overwrite` is just an ordinary configuration name. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.
+The configuration selector to the left of the actions menu lists files `config.yaml` and `config.{name}.yaml` from `~/.mode-runner/`. Hover a filename to see its full path; use its copy button to copy the path. Selection is remembered, and adding or removing files updates the list while the popover is visible. Only projects from the selected file are shown. The installer provides `config.example.yaml` once on a fresh installation. It can be deleted manually. There is no overwrite mechanism: `overwrite` is just an ordinary configuration name. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.
+
+Configurations with a top-level integer `sort_order` appear first, ordered by increasing value. Files without this property appear below all explicitly ordered files. Equal priorities sort by filename, with `config.yaml` first within that group. Negative values are supported. The list updates while the popover is visible when editing priorities changes the order.
+
+```yaml
+sort_order: 10
+tabs: []
+```

@@ -123,3 +123,33 @@ import Testing
     #expect(ConfigurationLoader.defaultURL(environment: ["SCRIPT_MODE_RUNNER_CONFIG": "/tmp/old.yaml"], homeDirectory: home).path == "/tmp/mode-runner-home/.mode-runner/config.yaml")
     #expect(ConfigurationLoader.defaultURL(environment: ["MODE_RUNNER_CONFIG": "/tmp/custom.yaml"], homeDirectory: home).path == "/tmp/custom.yaml")
 }
+
+@Test func configurationPrioritiesSortBeforeUnspecifiedFilesAndSurviveLoading() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let contents = [
+        "config.yaml": "tabs: []",
+        "config.example.yaml": "tabs: []",
+        "config.ringcentral.yaml": "sort_order: 0\ntabs: []",
+        "config.zebra.yaml": "sort_order: 10\ntabs: []",
+        "config.alpha.yaml": "sort_order: 10\ntabs: []",
+        "config.negative.yaml": "sort_order: -1\ntabs: []",
+        "config.invalid.yaml": "sort_order: wrong\ntabs: []",
+    ]
+    for (name, content) in contents {
+        try content.write(to: directory.appending(path: name), atomically: true, encoding: .utf8)
+    }
+    #expect(ConfigurationLoader.configurations(in: directory).map(\.lastPathComponent) ==
+            ["config.negative.yaml", "config.ringcentral.yaml", "config.alpha.yaml", "config.zebra.yaml",
+             "config.yaml", "config.example.yaml", "config.invalid.yaml"])
+    let ringcentral = directory.appending(path: "config.ringcentral.yaml")
+    #expect(try ConfigurationLoader().load(from: ringcentral).sortOrder == 0)
+    #expect(throws: (any Error).self) {
+        try ConfigurationLoader().load(from: directory.appending(path: "config.invalid.yaml"))
+    }
+    try "sort_order: -2\ntabs: []".write(to: ringcentral, atomically: true, encoding: .utf8)
+    #expect(ConfigurationLoader.configurations(in: directory).first == ringcentral)
+    let config = RunnerConfiguration(tabs: [], sortOrder: 10)
+    #expect(config.resolvingRelativePaths(relativeTo: directory).sortOrder == 10)
+}

@@ -52,7 +52,7 @@ published on the project website later.
 2. Build and run the app with `swift run ModeRunner`.
 3. Open the terminal icon in the menu bar.
 
-The installer creates `~/.mode-runner/config.example.yaml` on a fresh installation. Select a file from the header dropdown; `config.yaml` appears first, then `config.{name}.yaml` files alphabetically. Each item shows its full path on hover and has a copy-path button. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.
+The installer creates `~/.mode-runner/config.example.yaml` on a fresh installation. Select a file from the header dropdown; files follow their optional `sort_order`, then their filenames. Each item shows its full path on hover and has a copy-path button. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.
 
 A command can use an `executable`/`arguments` pair or a `command` string executed through a shell. Yarn, npm, Python, local binaries, and other programs are handled the same way.
 
@@ -259,3 +259,10 @@ Each log retains at most 5 MB, and a 100 MB shared budget trims older output whe
 necessary. Reload keeps running processes and their logs internally, but the project list
 contains only projects from the selected configuration. Removed projects are
 hidden even if their processes are still running or they have saved logs.
+
+Configurations with a top-level integer `sort_order` appear first, ordered by increasing value. Files without this property appear below all explicitly ordered files. Equal priorities sort by filename, with `config.yaml` first within that group. Negative values are supported. The list updates while the popover is visible when editing priorities changes the order.
+
+```yaml
+sort_order: 10
+tabs: []
+```

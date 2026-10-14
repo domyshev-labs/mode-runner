@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 import Testing
@@ -766,4 +767,49 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     #expect(state.configuration?.tabs.map(\.id) == ["cosmic"])
     #expect(state.visibleScripts.isEmpty)
     await state.shutdown()
+}
+
+@MainActor
+@Test func editingConfigurationPriorityRefreshesSelectorWithoutSwitchingSelection() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let base = directory.appending(path: "config.yaml")
+    let ringcentral = directory.appending(path: "config.ringcentral.yaml")
+    try "tabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
+    try "sort_order: 0\ntabs: []".write(to: ringcentral, atomically: true, encoding: .utf8)
+    let state = AppState(configURL: base)
+    #expect(state.configurationFiles == [ringcentral, base])
+    #expect(state.configURL == base)
+    try "sort_order: -1\ntabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
+    state.refreshConfigurations()
+    #expect(state.configurationFiles == [base, ringcentral])
+    #expect(state.configURL == base)
+    #expect(state.configuration?.sortOrder == -1)
+}
+
+@MainActor
+@Test func repeatedSelectorUpdatesNeverInsertDuplicateHeadingItems() {
+    let files = ["config.ringcentral.yaml", "config.example.yaml"].map {
+        URL(fileURLWithPath: "/tmp/selector-regression/\($0)")
+    }
+    let button = NSPopUpButton(frame: .zero, pullsDown: false)
+    let coordinator = ConfigurationSelector.Coordinator()
+    for index in 0..<30 {
+        let selected = files[index % files.count]
+        coordinator.parent = ConfigurationSelector(files: files, selectedURL: selected, select: { _ in })
+        coordinator.update(button)
+        #expect(button.numberOfItems == files.count)
+        #expect(button.menu?.items.compactMap { $0.representedObject as? URL } == files)
+        #expect(button.title == selected.lastPathComponent)
+        #expect(button.selectedItem?.representedObject as? URL == selected)
+    }
+    coordinator.parent = ConfigurationSelector(files: [], selectedURL: files[0], select: { _ in })
+    coordinator.update(button)
+    #expect(button.numberOfItems == 0)
+    #expect(!button.isEnabled)
+    coordinator.parent = ConfigurationSelector(files: files, selectedURL: files[1], select: { _ in })
+    coordinator.update(button)
+    #expect(button.numberOfItems == files.count)
+    #expect(button.title == files[1].lastPathComponent)
 }
