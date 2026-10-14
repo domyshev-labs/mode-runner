@@ -4,7 +4,7 @@ Mode Runner is a macOS 14+ menu bar app for starting local commands, switching b
 
 ## Configure your workspace
 
-Create `~/.config/mode-runner/config.yaml`. Each top-level tab represents a project; each button with `scripts` defines a mode. Replace the example working directory and commands with your own:
+Create `~/.mode-runner/config.yaml`. Each top-level tab represents a project; each button with `scripts` defines a mode. Replace the example working directory and commands with your own:
 
 ```yaml
 tabs:
@@ -32,8 +32,6 @@ tabs:
 - `command` runs through an interactive login zsh by default, loading your shell's tool setup. Install the tools and project dependencies before running commands.
 - For direct execution, use `executable: /absolute/path/to/program` and `arguments: [arg1, arg2]` instead of `command`. Direct executables inherit the app environment; configure `PATH` when needed.
 - Add `environment` to a script to provide environment variables, for example `environment: {NODE_ENV: development}`.
-- A neighboring `config.overwrite.yaml` replaces `config.yaml` completely when present. Custom files follow the same rule: `custom.overwrite.yml` replaces `custom.yml`. Reload checks again, the menu shows the selected path, and invalid replacements display an error. Remove the replacement to restore the base configuration.
-- Existing `~/.config/script-mode-runner/config.yaml` files are used when the new default file is absent. To choose another file when launching from Terminal, set `MODE_RUNNER_CONFIG=/path/to/config.yaml`.
 
 After saving the file, choose **Reload configuration** in the top-right menu. Hover over that item to see the active configuration path. Reload updates the interface and command catalogs while keeping running processes and logs.
 
@@ -90,4 +88,5 @@ Existing processes display a detection message instead of captured output: their
 
 For building, installing, and updating the app, see the project's [installation guide](https://github.com/domyshev-labs/script-mode-runner/blob/master/INSTALL.md). Source code and configuration examples are on [GitHub](https://github.com/domyshev-labs/script-mode-runner).
 
-The header shows an **Overwrite detected** banner to the left of the actions menu whenever the replacement file exists. Its switch controls whether the replacement is applied and reloads the configuration immediately. Turning the switch off keeps the banner visible and loads the base file. The preference is saved separately for each base configuration. File presence is checked every second while the popover is visible; creating or removing the replacement updates the banner and reloads the configuration. Only projects from the selected configuration appear in the window. Switching configurations does not stop existing processes; their logs remain internal and reappear only if their project is in the selected configuration. Invalid configurations display an error without keeping the previous project list.
+
+The configuration selector to the left of the actions menu lists `config.yaml` first and named files `config.{name}.yaml` alphabetically from `~/.mode-runner/`. Hover a filename to see its full path; use its copy button to copy the path. Selection is remembered, and adding or removing files updates the list while the popover is visible. Only projects from the selected file are shown. The installer provides `config.example.yaml` once on a fresh installation. It can be deleted manually. There is no overwrite mechanism: `overwrite` is just an ordinary configuration name. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.

@@ -83,10 +83,7 @@ fi
 mdimport "${APP_BUNDLE}" || print -u2 "Could not refresh Spotlight metadata."
 
 print "Installed: ${APP_BUNDLE}"
-CONFIGURATION_PATH="${HOME}/.config/mode-runner/config.yaml"
-if [[ ! -f "${CONFIGURATION_PATH}" && -f "${HOME}/.config/script-mode-runner/config.yaml" ]]; then
-    CONFIGURATION_PATH="${HOME}/.config/script-mode-runner/config.yaml"
-fi
-print "Configuration: ${CONFIGURATION_PATH}"
+"${SCRIPT_DIRECTORY}/install-example.sh" "${HOME}/.mode-runner"
+print "Configurations: ${HOME}/.mode-runner/config.yaml or config.{name}.yaml"
 print "Open the app from Finder or run:"
 print "  open '${APP_BUNDLE}'"

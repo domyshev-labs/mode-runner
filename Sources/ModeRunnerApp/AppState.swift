@@ -57,28 +57,33 @@ final class AppState: ObservableObject {
     @Published private(set) var modeActions: [String: LifecycleAction] = [:]
 
     @Published private(set) var configURL: URL
-    @Published private(set) var overwriteURL: URL?
-    @Published private(set) var overwriteEnabled: Bool
-    private let baseConfigURL: URL
+    @Published private(set) var configurationFiles: [URL]
+    private let configurationDirectory: URL
     private let relay: EventRelay
     private let supervisor: ProcessSupervisor
     private let preferences: UserDefaults
-    private let legacyPreferences: UserDefaults?
-    private var overwritePreferenceKey: String { "applyOverwrite/\(baseConfigURL.standardizedFileURL.path)" }
-    private var tabOrderKey: String { "projectTabOrder/\(baseConfigURL.standardizedFileURL.path)" }
+    private var selectionPreferenceKey: String { "selectedConfiguration/\(configurationDirectory.standardizedFileURL.path)" }
+    private var tabOrderKey: String { "projectTabOrder/\(configURL.standardizedFileURL.path)" }
     private var catalogTasks: [String: Task<Void, Never>] = [:]
     private var discoveryTask: Task<Void, Never>?
     @Published private(set) var discoveringProcesses = false
 
-    init(configURL: URL = ConfigurationLoader.defaultURL, preferences: UserDefaults = .standard,
-         legacyPreferences: UserDefaults? = UserDefaults(suiteName: "dev.domyshev.script-mode-runner")) {
-        self.baseConfigURL = configURL
-        let preferenceKey = "applyOverwrite/\(configURL.standardizedFileURL.path)"
-        let enabled = preferences.object(forKey: preferenceKey) as? Bool ?? true
-        self.overwriteEnabled = enabled
-        self.configURL = ConfigurationLoader.effectiveURL(for: configURL, applyOverwrite: enabled)
+    init(configURL: URL? = nil, preferences: UserDefaults = .standard) {
+        let requested = configURL ?? ConfigurationLoader.defaultURL
+        self.configurationDirectory = requested.deletingLastPathComponent()
+        let files = ConfigurationLoader.configurations(in: configurationDirectory)
+        self.configurationFiles = files
+        let key = "selectedConfiguration/\(configurationDirectory.standardizedFileURL.path)"
+        let saved = preferences.string(forKey: key).map { URL(fileURLWithPath: $0) }
+        if configURL == nil, ProcessInfo.processInfo.environment["MODE_RUNNER_CONFIG"] == nil,
+           let saved, files.contains(saved) {
+            self.configURL = saved
+        } else if FileManager.default.fileExists(atPath: requested.path) {
+            self.configURL = requested
+        } else {
+            self.configURL = files.first ?? requested
+        }
         self.preferences = preferences
-        self.legacyPreferences = legacyPreferences
         let relay = EventRelay()
         self.relay = relay
         supervisor = ProcessSupervisor { event in relay.receive(event) }
@@ -99,28 +104,35 @@ final class AppState: ObservableObject {
 
     func catalogKey(_ button: RunnerMode, tab: RunnerTab) -> String { "\(tab.id)/\(button.id)" }
 
-    func setOverwriteEnabled(_ enabled: Bool) {
-        guard overwriteEnabled != enabled else { return }
-        overwriteEnabled = enabled
-        preferences.set(enabled, forKey: overwritePreferenceKey)
+    func selectConfiguration(_ url: URL) {
+        guard configurationFiles.contains(url), configURL != url else { return }
+        configURL = url
+        preferences.set(url.path, forKey: selectionPreferenceKey)
         reload()
     }
 
-    func refreshOverwritePresence() {
-        if overwriteURL != ConfigurationLoader.availableOverwriteURL(for: baseConfigURL) { reload() }
+    func refreshConfigurations() {
+        let files = ConfigurationLoader.configurations(in: configurationDirectory)
+        guard files != configurationFiles else { return }
+        configurationFiles = files
+        if !FileManager.default.fileExists(atPath: configURL.path) {
+            configURL = files.first ?? configurationDirectory.appending(path: "config.yaml")
+            preferences.set(configURL.path, forKey: selectionPreferenceKey)
+        }
+        reload()
     }
 
     func reload() {
-        overwriteURL = ConfigurationLoader.availableOverwriteURL(for: baseConfigURL)
-        configURL = ConfigurationLoader.effectiveURL(for: baseConfigURL, applyOverwrite: overwriteEnabled)
+        configurationFiles = ConfigurationLoader.configurations(in: configurationDirectory)
+        if !FileManager.default.fileExists(atPath: configURL.path), let first = configurationFiles.first {
+            configURL = first
+            preferences.set(first.path, forKey: selectionPreferenceKey)
+        }
         do {
-            let loaded = try ConfigurationLoader().load(from: baseConfigURL, applyOverwrite: overwriteEnabled)
+            let loaded = try ConfigurationLoader().load(from: configURL)
             let tabs = loaded.tabs
             let savedOrder = preferences.stringArray(forKey: tabOrderKey)
-                ?? legacyPreferences?.stringArray(forKey: tabOrderKey) ?? []
-            if preferences.stringArray(forKey: tabOrderKey) == nil, !savedOrder.isEmpty {
-                preferences.set(savedOrder, forKey: tabOrderKey)
-            }
+                ?? []
             let positions = Dictionary(savedOrder.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
             configuration = RunnerConfiguration(tabs: tabs.enumerated().sorted {
                 let left = positions[$0.element.id] ?? savedOrder.count + $0.offset

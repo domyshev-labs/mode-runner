@@ -86,21 +86,18 @@ Writing to `/Applications` may require administrator permission. `~/Applications
 The installed app reads:
 
 ```text
-~/.config/mode-runner/config.yaml
+~/.mode-runner/config.yaml
 ```
 
-Existing installations continue to read `~/.config/script-mode-runner/config.yaml`
-when the new path does not exist. Keeping that file in place preserves relative
-working directories and locally saved project tab order. `MODE_RUNNER_CONFIG`
-overrides the default path; the former `SCRIPT_MODE_RUNNER_CONFIG` variable is
-also accepted for compatibility. Saved project tab order is imported from the
-former application's preferences automatically.
+The header selector lists regular files named `config.yaml` and `config.{name}.yaml` from this directory. The base filename is first, followed by named configurations alphabetically. Paths are shown on hover and can be copied using the button beside each filename. `MODE_RUNNER_CONFIG` selects a custom file; old directories and environment aliases are not supported.
 
-For a new installation, create the directory and copy the general example:
+On a fresh installation, the installer creates only `~/.mode-runner/config.example.yaml`, alongside independent demo sources under `~/.mode-runner/DemoApplications/`. The app selects the example when it is the only configuration. Install each demo's dependencies with `yarn install --frozen-lockfile` before running it. You can delete the example manually; subsequent installations will not recreate it.
+
+To add your own configuration alongside the installed example:
 
 ```bash
-mkdir -p ~/.config/mode-runner
-cp Examples/config.yaml ~/.config/mode-runner/config.yaml
+mkdir -p ~/.mode-runner
+cp Examples/config.yaml ~/.mode-runner/config.yaml
 ```
 
 Edit every `cwd`, executable, command, and environment value for the new Mac. Relative `cwd` values are resolved from the directory containing the YAML file.

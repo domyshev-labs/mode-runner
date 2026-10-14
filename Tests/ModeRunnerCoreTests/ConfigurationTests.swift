@@ -99,86 +99,27 @@ import Testing
     #expect(config.tabs[0].buttons[1].align == .right)
 }
 
-@Test func renamedConfigurationPathPreservesExistingInstallations() throws {
-    let home = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    defer { try? FileManager.default.removeItem(at: home) }
-    let current = home.appending(path: ".config/mode-runner/config.yaml")
-    let legacy = home.appending(path: ".config/script-mode-runner/config.yaml")
-    #expect(ConfigurationLoader.defaultURL(environment: [:], homeDirectory: home) == current)
-    try FileManager.default.createDirectory(at: legacy.deletingLastPathComponent(), withIntermediateDirectories: true)
-    try "tabs: []".write(to: legacy, atomically: true, encoding: .utf8)
-    #expect(ConfigurationLoader.defaultURL(environment: [:], homeDirectory: home) == legacy)
-    try FileManager.default.createDirectory(at: current.deletingLastPathComponent(), withIntermediateDirectories: true)
-    try "tabs: []".write(to: current, atomically: true, encoding: .utf8)
-    #expect(ConfigurationLoader.defaultURL(environment: [:], homeDirectory: home) == current)
-    let custom = home.appending(path: "custom.yaml")
-    #expect(ConfigurationLoader.defaultURL(environment: ["MODE_RUNNER_CONFIG": custom.path,
-                                                        "SCRIPT_MODE_RUNNER_CONFIG": legacy.path], homeDirectory: home) == custom)
-    #expect(ConfigurationLoader.defaultURL(environment: ["SCRIPT_MODE_RUNNER_CONFIG": legacy.path], homeDirectory: home) == legacy)
-    #expect(ConfigurationLoader.defaultURL(environment: ["MODE_RUNNER_CONFIG": "",
-                                                        "SCRIPT_MODE_RUNNER_CONFIG": legacy.path], homeDirectory: home) == legacy)
-}
 
-@Test func overwriteConfigurationReplacesBaseAndIsCheckedOnEveryLoad() throws {
+@Test func configurationFilesMatchExactNamesAndSortBaseFirst() throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
-    let base = directory.appending(path: "custom.config.yml")
-    let replacement = directory.appending(path: "custom.config.overwrite.yml")
-    let baseText = "tabs: [{id: base, title: Base, buttons: []}]"
-    try baseText.write(to: base, atomically: true, encoding: .utf8)
-    let loader = ConfigurationLoader()
-    #expect(try loader.load(from: base).tabs.first?.id == "base")
-    try """
-    tabs:
-      - id: replacement
-        title: Replacement
-        buttons:
-          - id: echo
-            title: Echo
-            scripts: [{id: echo, title: Echo, command: echo hello, cwd: .}]
-    """.write(to: replacement, atomically: true, encoding: .utf8)
-    #expect(ConfigurationLoader.effectiveURL(for: base) == replacement)
-    #expect(ConfigurationLoader.effectiveURL(for: replacement) == replacement)
-    let loaded = try loader.load(from: base)
-    #expect(loaded.tabs.map(\.id) == ["replacement"])
-    #expect(loaded.tabs[0].buttons[0].scripts[0].cwd == directory.path)
-    #expect(try String(contentsOf: base, encoding: .utf8) == baseText)
-    try "tabs: [invalid".write(to: replacement, atomically: true, encoding: .utf8)
-    #expect(throws: (any Error).self) { try loader.load(from: base) }
-    try FileManager.default.removeItem(at: base)
-    try "tabs: []".write(to: replacement, atomically: true, encoding: .utf8)
-    #expect(try loader.load(from: base).tabs.isEmpty)
-    try baseText.write(to: base, atomically: true, encoding: .utf8)
-    try FileManager.default.removeItem(at: replacement)
-    #expect(try loader.load(from: base).tabs.first?.id == "base")
-}
-
-@Test func defaultConfigurationRecognizesOverwriteOnlyInstallations() throws {
-    let home = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    defer { try? FileManager.default.removeItem(at: home) }
-    let current = home.appending(path: ".config/mode-runner/config.yaml")
-    let legacy = home.appending(path: ".config/script-mode-runner/config.yaml")
-    for base in [legacy, current] {
-        try FileManager.default.createDirectory(at: base.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let replacement = base.deletingPathExtension().appendingPathExtension("overwrite.yaml")
-        try "tabs: []".write(to: replacement, atomically: true, encoding: .utf8)
-        #expect(ConfigurationLoader.defaultURL(environment: [:], homeDirectory: home) == base)
+    for name in ["config.zebra.yaml", "config.example.yaml", "config.yaml", "config.overwrite.yaml",
+                 "config..yaml", "config.yml", "other.yaml", "config.foo.yaml.bak"] {
+        try "tabs: []".write(to: directory.appending(path: name), atomically: true, encoding: .utf8)
     }
-    #expect(ConfigurationLoader.defaultURL(environment: ["MODE_RUNNER_CONFIG": legacy.path], homeDirectory: home) == legacy)
-    #expect(try ConfigurationLoader().load(from: legacy).tabs.isEmpty)
+    try FileManager.default.createDirectory(at: directory.appending(path: "config.folder.yaml"), withIntermediateDirectories: true)
+    #expect(ConfigurationLoader.configurations(in: directory).map(\.lastPathComponent) ==
+            ["config.yaml", "config.example.yaml", "config.overwrite.yaml", "config.zebra.yaml"])
+    let base = directory.appending(path: "config.yaml")
+    try "tabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
+    #expect(try ConfigurationLoader().load(from: base).tabs.first?.id == "base")
+    #expect(try ConfigurationLoader().load(from: directory.appending(path: "config.overwrite.yaml")).tabs.isEmpty)
 }
 
-@Test func disabledOverwriteLoadsBaseDespitePresentInvalidReplacement() throws {
-    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    defer { try? FileManager.default.removeItem(at: directory) }
-    let base = directory.appending(path: "config.yaml")
-    let replacement = directory.appending(path: "config.overwrite.yaml")
-    try "tabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
-    try "tabs: [invalid".write(to: replacement, atomically: true, encoding: .utf8)
-    #expect(ConfigurationLoader.availableOverwriteURL(for: base) == replacement)
-    #expect(ConfigurationLoader.effectiveURL(for: base, applyOverwrite: false) == base)
-    #expect(try ConfigurationLoader().load(from: base, applyOverwrite: false).tabs.first?.id == "base")
-    #expect(throws: (any Error).self) { try ConfigurationLoader().load(from: base) }
+@Test func configurationDefaultUsesHomeFolderWithoutLegacyFallback() {
+    let home = URL(fileURLWithPath: "/tmp/mode-runner-home")
+    #expect(ConfigurationLoader.defaultURL(environment: [:], homeDirectory: home).path == "/tmp/mode-runner-home/.mode-runner/config.yaml")
+    #expect(ConfigurationLoader.defaultURL(environment: ["SCRIPT_MODE_RUNNER_CONFIG": "/tmp/old.yaml"], homeDirectory: home).path == "/tmp/mode-runner-home/.mode-runner/config.yaml")
+    #expect(ConfigurationLoader.defaultURL(environment: ["MODE_RUNNER_CONFIG": "/tmp/custom.yaml"], homeDirectory: home).path == "/tmp/custom.yaml")
 }

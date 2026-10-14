@@ -48,14 +48,11 @@ published on the project website later.
 
 ## Quick start
 
-1. Create `~/.config/mode-runner/config.yaml` using `Examples/config.yaml` as a template.
+1. Use the example provided by the installer, or create `~/.mode-runner/config.yaml` using `Examples/config.yaml` as a template.
 2. Build and run the app with `swift run ModeRunner`.
 3. Open the terminal icon in the menu bar.
 
-Existing configurations at `~/.config/script-mode-runner/config.yaml` remain
-supported when the new default path is absent. `MODE_RUNNER_CONFIG` selects a
-custom configuration; `SCRIPT_MODE_RUNNER_CONFIG` remains a compatible alias.
-The renamed app also imports locally saved project tab order.
+The installer creates `~/.mode-runner/config.example.yaml` on a fresh installation. Select a file from the header dropdown; `config.yaml` appears first, then `config.{name}.yaml` files alphabetically. Each item shows its full path on hover and has a copy-path button. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.
 
 A command can use an `executable`/`arguments` pair or a `command` string executed through a shell. Yarn, npm, Python, local binaries, and other programs are handled the same way.
 
@@ -70,13 +67,11 @@ swift Scripts/generate-icon.swift .build/menu-icon.iconset
 cp .build/menu-icon.iconset/icon_128x128.png Sources/ModeRunnerApp/Resources/MenuBarIcon.png
 ```
 
-## Science demos and local configuration replacement
+## Science demos and configuration selection
 
-Three independent React + Vite demos cover space imagery, mathematical reading, and earthquake observations. Launch them through Yarn in Mock or Live API mode, and use Mode Runner's seed menus to change local datasets. See [DemoApplications/README.md](DemoApplications/README.md) for installation and the demonstration flow; [Examples/science-demos.yaml](Examples/science-demos.yaml) provides the configuration.
+Three independent React + Vite demos cover space imagery, mathematical reading, and earthquake observations. Launch them through Yarn in Mock or Live API mode, and use Mode Runner's seed menus to change local datasets. See [DemoApplications/README.md](DemoApplications/README.md) for installation and the demonstration flow; [Examples/config.example.yaml](Examples/config.example.yaml) provides the configuration.
 
-A neighboring `.overwrite` configuration takes precedence over the selected file: `config.overwrite.yaml` replaces `config.yaml`, and `custom.overwrite.yml` replaces `custom.yml`. The replacement is complete, not merged. It applies to default, legacy, and environment-selected configurations, and is checked again on Reload. The menu displays the selected file's path. Removing the replacement restores the base file; an invalid replacement displays an error. Local overwrite files are ignored by Git.
-
-The header shows an **Overwrite detected** banner to the left of the actions menu whenever the replacement file exists. Its switch controls whether the replacement is applied and reloads the configuration immediately. Turning the switch off keeps the banner visible and loads the base file. The preference is saved separately for each base configuration. File presence is checked every second while the popover is visible; creating or removing the replacement updates the banner and reloads the configuration. Only projects from the selected configuration appear in the window. Switching configurations does not stop existing processes; their logs remain internal and reappear only if their project is in the selected configuration. Invalid configurations display an error without keeping the previous project list.
+Configurations are independent files in `~/.mode-runner/`. The selector remembers the chosen file and checks the directory every second while the popover is visible. Only projects from the selected configuration appear. Running processes keep working when switching files. `config.overwrite.yaml`, if present, is an ordinary selectable configuration with no special priority.
 
 ## Test applications
 

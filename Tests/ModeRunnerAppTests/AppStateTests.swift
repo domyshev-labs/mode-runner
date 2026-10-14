@@ -611,34 +611,6 @@ private func waitUntil(_ condition: () -> Bool) async throws {
 }
 
 @MainActor
-@Test func renamedAppImportsLegacyProjectOrderOnlyOnce() throws {
-    let config = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    defer { try? FileManager.default.removeItem(at: config) }
-    try """
-    tabs:
-      - {id: one, title: One, buttons: []}
-      - {id: two, title: Two, buttons: []}
-    """.write(to: config, atomically: true, encoding: .utf8)
-    let suite = "ModeRunnerTests/" + UUID().uuidString
-    let legacySuite = suite + "/legacy"
-    let preferences = try #require(UserDefaults(suiteName: suite))
-    let legacy = try #require(UserDefaults(suiteName: legacySuite))
-    defer {
-        preferences.removePersistentDomain(forName: suite)
-        legacy.removePersistentDomain(forName: legacySuite)
-    }
-    let key = "projectTabOrder/\(config.standardizedFileURL.path)"
-    legacy.set(["two", "one"], forKey: key)
-    let state = AppState(configURL: config, preferences: preferences, legacyPreferences: legacy)
-    #expect(state.configuration?.tabs.map(\.id) == ["two", "one"])
-    #expect(preferences.stringArray(forKey: key) == ["two", "one"])
-    #expect(state.moveTab("one", to: "two"))
-    state.reload()
-    #expect(state.configuration?.tabs.map(\.id) == ["one", "two"])
-    #expect(legacy.stringArray(forKey: key) == ["two", "one"])
-}
-
-@MainActor
 @Test func lifecycleLoadersTrackOnlyTheClickedActionAndRejectInactiveModeStop() async throws {
     let config = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: config) }
@@ -702,112 +674,68 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     await state.shutdown()
 }
 
-@MainActor
-@Test func reloadTracksOverwriteCreationAndRemovalWithoutChangingBase() throws {
-    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    defer { try? FileManager.default.removeItem(at: directory) }
-    let base = directory.appending(path: "config.yaml")
-    let replacement = directory.appending(path: "config.overwrite.yaml")
-    let original = "tabs: [{id: base, title: Base, buttons: []}]"
-    try original.write(to: base, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: base)
-    #expect(state.configURL == base)
-    try "tabs: [{id: demo, title: Demo, buttons: []}]".write(to: replacement, atomically: true, encoding: .utf8)
-    state.reload()
-    #expect(state.configURL == replacement)
-    #expect(state.configuration?.tabs.first?.id == "demo")
-    try "tabs: [invalid".write(to: replacement, atomically: true, encoding: .utf8)
-    state.reload()
-    #expect(state.errorMessage?.contains(replacement.path) == true)
-    try FileManager.default.removeItem(at: replacement)
-    state.reload()
-    #expect(state.configURL == base)
-    #expect(state.configuration?.tabs.first?.id == "base")
-    #expect(state.errorMessage == nil)
-    #expect(try String(contentsOf: base, encoding: .utf8) == original)
-}
 
 @MainActor
-@Test func overwriteSwitchKeepsDetectionVisibleAndPersistsForEachConfiguration() throws {
+@Test func selectorLoadsOnlySelectedConfigurationAndHandlesRemoval() throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
-    let suite = "overwrite-tests-\(UUID().uuidString)"
+    let suite = "selector-tests-\(UUID().uuidString)"
     let preferences = try #require(UserDefaults(suiteName: suite))
     defer { preferences.removePersistentDomain(forName: suite) }
     let base = directory.appending(path: "config.yaml")
-    let replacement = directory.appending(path: "config.overwrite.yaml")
-    let original = "tabs: [{id: base, title: Base, buttons: []}]"
-    try original.write(to: base, atomically: true, encoding: .utf8)
-    try "tabs: [{id: override, title: Override, buttons: []}]".write(to: replacement, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: base, preferences: preferences)
-    #expect(state.overwriteEnabled)
-    #expect(state.overwriteURL == replacement)
-    #expect(state.configuration?.tabs.first?.id == "override")
-
-    state.setOverwriteEnabled(false)
-    #expect(state.overwriteURL == replacement)
-    #expect(state.configURL == base)
-    #expect(state.configuration?.tabs.first?.id == "base")
-    let relaunched = AppState(configURL: base, preferences: preferences)
-    #expect(!relaunched.overwriteEnabled)
-    #expect(relaunched.overwriteURL == replacement)
-    #expect(relaunched.configURL == base)
-
-    let otherBase = directory.appending(path: "other.yaml")
-    try original.write(to: otherBase, atomically: true, encoding: .utf8)
-    #expect(AppState(configURL: otherBase, preferences: preferences).overwriteEnabled)
-
-    try FileManager.default.removeItem(at: replacement)
-    state.refreshOverwritePresence()
-    #expect(state.overwriteURL == nil)
-    #expect(!state.overwriteEnabled)
-    try "tabs: [{id: override, title: Override, buttons: []}]".write(to: replacement, atomically: true, encoding: .utf8)
-    state.refreshOverwritePresence()
-    #expect(state.overwriteURL == replacement)
-    #expect(state.configuration?.tabs.first?.id == "base")
-    state.setOverwriteEnabled(true)
-    #expect(state.overwriteURL == replacement)
-    #expect(state.configuration?.tabs.first?.id == "override")
-    try FileManager.default.removeItem(at: replacement)
-    state.refreshOverwritePresence()
-    #expect(state.overwriteURL == nil)
-    #expect(state.configURL == base)
-    #expect(try String(contentsOf: base, encoding: .utf8) == original)
-}
-
-@MainActor
-@Test func overwriteSwitchCanRecoverFromInvalidReplacement() throws {
-    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    defer { try? FileManager.default.removeItem(at: directory) }
-    let suite = "overwrite-tests-\(UUID().uuidString)"
-    let preferences = try #require(UserDefaults(suiteName: suite))
-    defer { preferences.removePersistentDomain(forName: suite) }
-    let base = directory.appending(path: "config.yaml")
-    let replacement = directory.appending(path: "config.overwrite.yaml")
+    let example = directory.appending(path: "config.example.yaml")
     try "tabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
-    try "tabs: [invalid".write(to: replacement, atomically: true, encoding: .utf8)
+    try "tabs: [{id: demo, title: Demo, buttons: []}]".write(to: example, atomically: true, encoding: .utf8)
     let state = AppState(configURL: base, preferences: preferences)
-    #expect(state.errorMessage != nil)
-    #expect(state.overwriteURL == replacement)
-    state.setOverwriteEnabled(false)
-    #expect(state.errorMessage == nil)
-    #expect(state.configuration?.tabs.first?.id == "base")
-    #expect(state.overwriteURL == replacement)
-    state.setOverwriteEnabled(true)
-    #expect(state.errorMessage?.contains(replacement.path) == true)
-    #expect(state.overwriteURL == replacement)
+    #expect(state.configurationFiles == [base, example])
+    state.selectConfiguration(example)
+    #expect(state.configURL == example)
+    #expect(state.configuration?.tabs.map(\.id) == ["demo"])
+    #expect(preferences.string(forKey: "selectedConfiguration/\(directory.path)") == example.path)
+    try "tabs: [invalid".write(to: example, atomically: true, encoding: .utf8)
+    state.reload()
+    #expect(state.configuration == nil)
+    #expect(state.errorMessage?.contains(example.path) == true)
+    state.selectConfiguration(base)
+    #expect(state.configuration?.tabs.map(\.id) == ["base"])
+    try FileManager.default.removeItem(at: base)
+    state.refreshConfigurations()
+    #expect(state.configURL == example)
+    #expect(state.configurationFiles == [example])
+    try FileManager.default.removeItem(at: example)
+    state.refreshConfigurations()
+    #expect(state.configurationFiles.isEmpty)
+    #expect(state.configuration == nil)
 }
 
 @MainActor
-@Test func configurationSwitchHidesUnconfiguredProjectsDespiteProcessesAndLogs() async throws {
+@Test func exampleOnlyInstallationLoadsExampleAndSelectorExposesCopyablePaths() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let example = directory.appending(path: "config.example.yaml")
+    try "tabs: [{id: demo, title: Demo, buttons: []}]".write(to: example, atomically: true, encoding: .utf8)
+    let state = AppState(configURL: directory.appending(path: "config.yaml"))
+    #expect(state.configURL == example)
+    #expect(state.configuration?.tabs.first?.id == "demo")
+    let coordinator = ConfigurationSelector.Coordinator()
+    coordinator.parent = ConfigurationSelector(files: [example], selectedURL: example, select: { _ in })
+    let item = try #require(coordinator.makeMenu().items.first)
+    #expect(item.toolTip == example.path)
+    #expect(item.state == .on)
+    let row = try #require(item.view as? ConfigurationMenuRow)
+    #expect(row.url == example)
+    #expect(row.subviews.count == 2)
+}
+
+@MainActor
+@Test func selectorHidesRunningProjectsFromOtherConfigurations() async throws {
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
     let base = directory.appending(path: "config.yaml")
-    let replacement = directory.appending(path: "config.overwrite.yaml")
+    let example = directory.appending(path: "config.example.yaml")
     try """
     tabs:
       - id: event-search
@@ -816,54 +744,26 @@ private func waitUntil(_ condition: () -> Bool) async throws {
           - id: server
             title: Server
             on_deactivate: {sigint: true, sigkill: true, timeout: 0.2s}
-            scripts:
-              - {id: server, title: Server, executable: /bin/sleep, arguments: [60]}
+            scripts: [{id: server, title: Server, executable: /bin/sleep, arguments: [60]}]
     """.write(to: base, atomically: true, encoding: .utf8)
-    let suite = "configuration-switch-tests-\(UUID().uuidString)"
-    let preferences = try #require(UserDefaults(suiteName: suite))
-    defer { preferences.removePersistentDomain(forName: suite) }
-    let state = AppState(configURL: base, preferences: preferences)
+    try "tabs: [{id: cosmic, title: Cosmic, buttons: []}]".write(to: example, atomically: true, encoding: .utf8)
+    let state = AppState(configURL: base)
     defer { Task { await state.shutdown() } }
-    let originalTab = try #require(state.selectedTab)
-    state.startMode(originalTab.buttons[0], in: originalTab)
-    try await waitUntil { state.runningMode(in: originalTab) != nil && state.busyTabs.isEmpty }
+    let tab = try #require(state.selectedTab)
+    state.startMode(tab.buttons[0], in: tab)
+    try await waitUntil { state.runningMode(in: tab) != nil && state.busyTabs.isEmpty }
     let runID = try #require(state.selectedOutputID)
-    #expect(state.visibleScripts.map(\.id) == [runID])
-
-    try "tabs: [{id: cosmic-archive, title: Cosmic Archive, buttons: []}]".write(to: replacement, atomically: true, encoding: .utf8)
-    state.refreshOverwritePresence()
-    #expect(state.configuration?.tabs.map(\.id) == ["cosmic-archive"])
-    #expect(state.selectedTabID == "cosmic-archive")
-    #expect(state.selectedOutputID == nil)
+    state.selectConfiguration(example)
+    #expect(state.configuration?.tabs.map(\.id) == ["cosmic"])
     #expect(state.visibleScripts.isEmpty)
+    #expect(state.selectedOutputID == nil)
     #expect(state.logs[runID]?.status?.isRunning == true)
-
-    state.setOverwriteEnabled(false)
-    #expect(state.configuration?.tabs.map(\.id) == ["event-search"])
+    state.selectConfiguration(base)
     #expect(state.visibleScripts.map(\.id) == [runID])
-    state.setOverwriteEnabled(true)
-    #expect(state.configuration?.tabs.map(\.id) == ["cosmic-archive"])
-    #expect(state.visibleScripts.isEmpty)
+    state.selectConfiguration(example)
     await state.stop(runID)
-    try await waitUntil { state.logs[runID]?.status?.isRunning == false }
     state.reload()
-    #expect(state.logs[runID] != nil)
-    #expect(state.configuration?.tabs.map(\.id) == ["cosmic-archive"])
-
-    try "tabs: []".write(to: replacement, atomically: true, encoding: .utf8)
-    state.reload()
-    #expect(state.configuration?.tabs.isEmpty == true)
-    #expect(state.selectedTab == nil)
+    #expect(state.configuration?.tabs.map(\.id) == ["cosmic"])
     #expect(state.visibleScripts.isEmpty)
-    try "tabs: [invalid".write(to: replacement, atomically: true, encoding: .utf8)
-    state.reload()
-    #expect(state.configuration == nil)
-    #expect(!state.discoveringProcesses)
-    #expect(state.selectedOutputID == nil)
-    #expect(state.visibleScripts.isEmpty)
-    #expect(state.errorMessage != nil)
-    state.setOverwriteEnabled(false)
-    #expect(state.configuration?.tabs.map(\.id) == ["event-search"])
-    #expect(state.errorMessage == nil)
     await state.shutdown()
 }

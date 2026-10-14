@@ -44,7 +44,7 @@ struct MainPopoverView: View {
         .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: state.selectedTabID)
         .task {
             while !Task.isCancelled {
-                state.refreshOverwritePresence()
+                state.refreshConfigurations()
                 do { try await Task.sleep(for: .seconds(1)) }
                 catch { break }
             }
@@ -115,11 +115,13 @@ struct MainPopoverView: View {
             if state.discoveringProcesses {
                 ProgressView().controlSize(.small).help("Finding running processes")
             }
-            if let overwriteURL = state.overwriteURL {
-                OverwriteConfigurationBanner(fileURL: overwriteURL,
-                                             isEnabled: Binding(get: { state.overwriteEnabled },
-                                                                set: { state.setOverwriteEnabled($0) }))
-            }
+            ConfigurationSelector(files: state.configurationFiles, selectedURL: state.configURL,
+                                  select: { state.selectConfiguration($0) },
+                                  menuVisibilityChanged: { open in
+                                      (NSApplication.shared.delegate as? AppDelegate)?.configurationMenuChanged(open: open)
+                                  })
+                .frame(width: 185, height: 26)
+                .runnerGlass(radius: 8, interactive: true)
             RunnerActionsMenu(configURL: state.configURL, reload: { state.reload() }) { action in
                 (NSApplication.shared.delegate as? AppDelegate)?.request(action)
             }

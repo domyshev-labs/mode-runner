@@ -7,5 +7,3 @@ xcuserdata/
 node_modules/
 dist/
 .demo-state/
-*.overwrite.yaml
-*.overwrite.yml

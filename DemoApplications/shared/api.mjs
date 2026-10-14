@@ -31,9 +31,9 @@ export async function fetchRecords(id, live, topic, signal) {
     euler: 'Leonhard Euler', gauss: 'Carl Friedrich Gauss', noether: 'Emmy Noether' };
   let path = '/api/records';
   if (live) {
-    if (id === 'cosmic-archive') path = `/api/search?q=${encodeURIComponent(topics[topic])}&media_type=image&page_size=12`;
-    else if (id === 'mathematical-minds') path = `/api/search.json?q=${encodeURIComponent(topics[topic])}&limit=12&fields=key,title,author_name,first_publish_year,cover_i,edition_count`;
-    else path = `/api/earthquakes/feed/v1.0/summary/${topic === 'strong' ? '4.5_week' : 'all_day'}.geojson`;
+    if (id === 'cosmic-archive') path = `https://images-api.nasa.gov/search?q=${encodeURIComponent(topics[topic])}&media_type=image&page_size=12`;
+    else if (id === 'mathematical-minds') path = `https://openlibrary.org/search.json?q=${encodeURIComponent(topics[topic])}&limit=12&fields=key,title,author_name,first_publish_year,cover_i,edition_count`;
+    else path = `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${topic === 'strong' ? '4.5_week' : 'all_day'}.geojson`;
   }
   const response = await fetch(path, { signal: AbortSignal.any([signal, AbortSignal.timeout(20000)]) });
   if (!response.ok) throw new Error(`Data request failed (${response.status}). ${live ? 'Try again later.' : 'Check that the mock server is running in Mode Runner.'}`);

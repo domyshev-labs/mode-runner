@@ -4,7 +4,7 @@ import Testing
 
 @Test func scienceDemoConfigurationLoadsModesAndExecutableSeedMenus() async throws {
     let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-    let configuration = try ConfigurationLoader().load(from: root.appending(path: "Examples/science-demos.yaml"))
+    let configuration = try ConfigurationLoader().load(from: root.appending(path: "Examples/config.example.yaml"))
     #expect(configuration.tabs.count == 3)
     for tab in configuration.tabs {
         #expect(tab.buttons.map(\.id) == ["mock", "live", "seeds"])

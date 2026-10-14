@@ -8,7 +8,7 @@ Requires Node.js 22.12+ and Yarn Classic 1.22.22. From the repository root, inst
 (cd DemoApplications/cosmic-archive && yarn install --frozen-lockfile)
 (cd DemoApplications/mathematical-minds && yarn install --frozen-lockfile)
 (cd DemoApplications/earth-observatory && yarn install --frozen-lockfile)
-MODE_RUNNER_CONFIG="$PWD/Examples/science-demos.yaml" swift run ModeRunner
+MODE_RUNNER_CONFIG="$PWD/Examples/config.example.yaml" swift run ModeRunner
 ```
 
 | Application | React port | Mock API port | Seeds |
@@ -32,7 +32,7 @@ The mock science and reading cards are compact editorial fixtures; the reading e
 
 ## Public data sources
 
-Live mode uses fixed Vite proxy targets and requires internet access, without API keys or accounts:
+Live mode sends requests directly from the browser to the public APIs. Their real HTTPS URLs appear in the browser Network panel. Internet access is required, without API keys or accounts:
 
 - [NASA Image and Video Library API](https://images.nasa.gov/docs/images.nasa.gov_api_docs.pdf): image search for the Moon, Mars, and galaxies.
 - [Open Library Search API](https://openlibrary.org/dev/docs/api/search): catalogue records matching Euler, Gauss, and Noether. Results can include works about these mathematicians, not only works they authored.
@@ -52,7 +52,7 @@ yarn dev:live  # live frontend; stop dev:mock first
 yarn build     # compile the frontend
 ```
 
-`yarn build` builds the mock frontend by default. Use `yarn build --mode live` to build the live frontend. These are development demos: their `/api` proxy is provided by the Vite development server, so a static build or `yarn preview` alone does not provide the data API.
+`yarn build` builds the mock frontend by default. Use `yarn build --mode live` to build the live frontend. Live builds also work through `yarn preview` or a static host because they call public APIs directly. Mock builds require the Vite development server and the local mock API; `yarn preview` alone does not provide the mock `/api` proxy.
 
 From the repository root, test the mock server, persisted seeds, and response adapters:
 
@@ -60,17 +60,18 @@ From the repository root, test the mock server, persisted seeds, and response ad
 node --test DemoApplications/shared/demo.test.mjs
 ```
 
-## Local configuration replacement
+## Configuration selection
 
-Mode Runner loads a neighboring `.overwrite` file instead of the selected base configuration whenever it exists. For example, `Examples/config.overwrite.yaml` replaces `Examples/config.yaml`, and `custom.settings.overwrite.yml` replaces `custom.settings.yml`. The replacement is a complete configuration, not a merge. Relative paths resolve from that directory. Reload checks again, so deleting the replacement restores the base configuration. Invalid replacement files produce an error instead of silently loading the base.
+Mode Runner discovers `~/.mode-runner/config.yaml` and `~/.mode-runner/config.{name}.yaml`. The selector shows the base filename first, then named files alphabetically. Hover a file to see its complete path, or use the copy button beside it. Selecting a file loads only that file; configurations are never merged and there is no automatic overwrite behavior.
 
-For a disposable local setup:
+On a fresh installation the installer creates only `config.example.yaml` and copies these demo sources to `~/.mode-runner/DemoApplications/`. Install dependencies separately in each copied application with `yarn install --frozen-lockfile`. The example can be deleted manually and will not be recreated on later installs.
+
+To add the repository demo setup to an existing configuration directory:
 
 ```bash
-cp Examples/science-demos.yaml Examples/config.overwrite.yaml
-MODE_RUNNER_CONFIG="$PWD/Examples/config.yaml" swift run ModeRunner
+mkdir -p ~/.mode-runner
+# Edit the three cwd paths to absolute paths into this repository before using this copy.
+cp Examples/config.example.yaml ~/.mode-runner/config.example.yaml
 ```
 
-The base configuration remains untouched. Local `*.overwrite.yaml` and `*.overwrite.yml` files, seed state, build output, and `node_modules` are ignored by Git. The committed `Examples/science-demos.yaml` is the reusable configuration.
-
-The header shows an **Overwrite detected** banner to the left of the actions menu whenever the replacement file exists. Its switch controls whether the replacement is applied and reloads the configuration immediately. Turning the switch off keeps the banner visible and loads the base file. The preference is saved separately for each base configuration. File presence is checked every second while the popover is visible; creating or removing the replacement updates the banner and reloads the configuration. Only projects from the selected configuration appear in the window. Switching configurations does not stop existing processes; their logs remain internal and reappear only if their project is in the selected configuration. Invalid configurations display an error without keeping the previous project list.
+`node_modules`, build output, and seed state are ignored by Git. The committed `Examples/config.example.yaml` is the reusable demo configuration.

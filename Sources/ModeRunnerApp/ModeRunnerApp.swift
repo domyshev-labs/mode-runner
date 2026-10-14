@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var preparingTermination = false
     private var readyToTerminate = false
     private var exitWatchdog: Process?
+    private var configurationMenuBehavior: NSPopover.Behavior?
     private let informationWindows = RunnerInformationWindows()
     private let actionPreferences = RunnerActionPreferences()
     private let statusMenuCoordinator = RunnerActionsMenu.Coordinator()
@@ -23,6 +24,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         super.init()
         informationWindows.mainPopover = mainPopover
         statusMenuCoordinator.onClose = { [weak self] in self?.statusItem?.menu = nil }
+    }
+
+    func configurationMenuChanged(open: Bool) {
+        if open {
+            configurationMenuBehavior = mainPopover.behavior
+            mainPopover.behavior = .applicationDefined
+        } else if let behavior = configurationMenuBehavior {
+            mainPopover.behavior = behavior
+            configurationMenuBehavior = nil
+        }
     }
 
     @objc func showAbout() {
