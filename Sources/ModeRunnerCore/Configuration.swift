@@ -2,9 +2,16 @@ import Foundation
 
 public struct RunnerConfiguration: Codable, Equatable, Sendable {
     public let tabs: [RunnerTab]
+    public let sortOrder: Int?
 
-    public init(tabs: [RunnerTab]) {
+    enum CodingKeys: String, CodingKey {
+        case tabs
+        case sortOrder = "sort_order"
+    }
+
+    public init(tabs: [RunnerTab], sortOrder: Int? = nil) {
         self.tabs = tabs
+        self.sortOrder = sortOrder
     }
 
     public func validated(fileManager: FileManager = .default) throws -> RunnerConfiguration {
@@ -52,7 +59,7 @@ public struct RunnerConfiguration: Codable, Equatable, Sendable {
                     marginLeft: mode.marginLeft, marginRight: mode.marginRight, align: mode.align
                 )
             })
-        })
+        }, sortOrder: sortOrder)
     }
 }
 

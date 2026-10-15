@@ -1,0 +1,24 @@
+{
+  "id": "cosmic-archive",
+  "title": "Cosmic Archive",
+  "tagline": "A small window into a very large universe.",
+  "source": "NASA Image Library",
+  "sourceURL": "https://images.nasa.gov/",
+  "defaultScenario": "moon",
+  "port": 4010,
+  "mockPort": 4015,
+  "scenarios": [
+    {
+      "id": "moon",
+      "title": "The Moon"
+    },
+    {
+      "id": "mars",
+      "title": "Mars"
+    },
+    {
+      "id": "deep-space",
+      "title": "Deep space"
+    }
+  ]
+}

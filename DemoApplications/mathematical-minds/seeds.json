@@ -1,0 +1,23 @@
+[
+  {
+    "id": "euler",
+    "title": "Leonhard Euler",
+    "arguments": [
+      "euler"
+    ]
+  },
+  {
+    "id": "gauss",
+    "title": "Carl Friedrich Gauss",
+    "arguments": [
+      "gauss"
+    ]
+  },
+  {
+    "id": "noether",
+    "title": "Emmy Noether",
+    "arguments": [
+      "noether"
+    ]
+  }
+]

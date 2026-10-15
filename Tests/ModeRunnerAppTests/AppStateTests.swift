@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 import Testing
@@ -44,7 +45,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     let config = dir.appending(path: "config.yaml")
     try yaml.write(to: config, atomically: true, encoding: .utf8)
     try #"{"scripts":{"build":"echo build"}}"#.write(to: dir.appending(path: "package.json"), atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let server = tab.buttons[0]
@@ -96,7 +97,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: server, title: Server, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let primary = tab.buttons[0]
@@ -158,7 +159,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: one, title: One, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let primary = tab.buttons[0]
@@ -202,7 +203,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
                 arguments: [-c, 'exit 7']
     """
     try yaml.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -239,7 +240,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     """
     let config = dir.appending(path: "config.yaml")
     try yaml.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -289,7 +290,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
                 arguments: [0]
     """
     try yaml.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -320,7 +321,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
               - {id: dev, title: Dev, executable: /bin/sleep, arguments: [30]}
               - {id: backend, title: Backend, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     state.toggle(tab.buttons[0], in: tab)
@@ -361,7 +362,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
               - {id: frontend, title: Frontend, executable: /bin/sh, arguments: [-c, 'echo ready; exec sleep 30']}
               - {id: backend, title: Backend, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -408,7 +409,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: server, title: Server, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -450,10 +451,11 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     try await waitUntil { state.busyTabs.isEmpty && state.runningMode(in: tab)?.id == "other" }
     state.selectMode(button, in: tab)
     state.selectedOutputID = frontend.id
-    #expect(!state.canStartSelected)
+    #expect(state.canStartSelected)
     state.startSelected()
-    #expect(state.startingRuns.isEmpty)
-    #expect(state.logs[frontend.id]?.status?.isRunning == false)
+    try await waitUntil { state.busyTabs.isEmpty && state.logs[frontend.id]?.status?.isRunning == true }
+    #expect(state.logs[backend.id]?.status?.isRunning == false)
+    #expect(state.runs.filter { $0.buttonID == "other" }.allSatisfy { state.logs[$0.id]?.status?.isRunning == false })
     await state.shutdown()
 }
 
@@ -478,7 +480,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             source: {type: json_file, path: seeds.json}
             on_deactivate: {sigkill: true}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
@@ -527,7 +529,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: server, title: Server, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let primary = tab.buttons[0]
@@ -571,7 +573,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
         try ("tabs:\n" + tabs).write(to: url, atomically: true, encoding: .utf8)
     }
     try writeTabs(["one", "two", "three"], to: config)
-    let state = AppState(configURL: config, preferences: preferences)
+    let state = AppState(requireStopConfirmation: false, configURL: config, preferences: preferences)
     state.selectedTabID = "two"
     #expect(state.moveTab("one", to: "three"))
     #expect(state.configuration?.tabs.map(\.id) == ["two", "three", "one"])
@@ -583,14 +585,14 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     #expect(state.moveTab("three", to: "one"))
     state.reload()
     #expect(state.configuration?.tabs.map(\.id) == ["three", "one", "two"])
-    let relaunched = AppState(configURL: config, preferences: preferences)
+    let relaunched = AppState(requireStopConfirmation: false, configURL: config, preferences: preferences)
     #expect(relaunched.configuration?.tabs.map(\.id) == ["three", "one", "two"])
     try writeTabs(["two", "four", "three"], to: config)
     relaunched.reload()
     #expect(relaunched.configuration?.tabs.map(\.id) == ["three", "two", "four"])
     let otherConfig = directory.appending(path: "other.yaml")
     try writeTabs(["two", "three"], to: otherConfig)
-    let independent = AppState(configURL: otherConfig, preferences: preferences)
+    let independent = AppState(requireStopConfirmation: false, configURL: otherConfig, preferences: preferences)
     #expect(independent.configuration?.tabs.map(\.id) == ["two", "three"])
 }
 
@@ -608,34 +610,6 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     #expect(projectTabID(at: CGPoint(x: 100, y: -1), width: 656, tabs: tabs) == nil)
     #expect(projectTabID(at: .zero, width: 0, tabs: tabs) == nil)
     #expect(projectTabID(at: .zero, width: 656, tabs: []) == nil)
-}
-
-@MainActor
-@Test func renamedAppImportsLegacyProjectOrderOnlyOnce() throws {
-    let config = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    defer { try? FileManager.default.removeItem(at: config) }
-    try """
-    tabs:
-      - {id: one, title: One, buttons: []}
-      - {id: two, title: Two, buttons: []}
-    """.write(to: config, atomically: true, encoding: .utf8)
-    let suite = "ModeRunnerTests/" + UUID().uuidString
-    let legacySuite = suite + "/legacy"
-    let preferences = try #require(UserDefaults(suiteName: suite))
-    let legacy = try #require(UserDefaults(suiteName: legacySuite))
-    defer {
-        preferences.removePersistentDomain(forName: suite)
-        legacy.removePersistentDomain(forName: legacySuite)
-    }
-    let key = "projectTabOrder/\(config.standardizedFileURL.path)"
-    legacy.set(["two", "one"], forKey: key)
-    let state = AppState(configURL: config, preferences: preferences, legacyPreferences: legacy)
-    #expect(state.configuration?.tabs.map(\.id) == ["two", "one"])
-    #expect(preferences.stringArray(forKey: key) == ["two", "one"])
-    #expect(state.moveTab("one", to: "two"))
-    state.reload()
-    #expect(state.configuration?.tabs.map(\.id) == ["one", "two"])
-    #expect(legacy.stringArray(forKey: key) == ["two", "one"])
 }
 
 @MainActor
@@ -658,7 +632,7 @@ private func waitUntil(_ condition: () -> Bool) async throws {
             scripts:
               - {id: server, title: Server, executable: /bin/sleep, arguments: [30]}
     """.write(to: config, atomically: true, encoding: .utf8)
-    let state = AppState(configURL: config)
+    let state = AppState(requireStopConfirmation: false, configURL: config)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let mock = tab.buttons[0]
@@ -700,4 +674,143 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     try await waitUntil { state.busyTabs.isEmpty && state.runningMode(in: tab) == nil }
     #expect(state.modeActions.isEmpty)
     await state.shutdown()
+}
+
+
+@MainActor
+@Test func selectorLoadsOnlySelectedConfigurationAndHandlesRemoval() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let suite = "selector-tests-\(UUID().uuidString)"
+    let preferences = try #require(UserDefaults(suiteName: suite))
+    defer { preferences.removePersistentDomain(forName: suite) }
+    let base = directory.appending(path: "config.yaml")
+    let example = directory.appending(path: "config.example.yaml")
+    try "tabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
+    try "tabs: [{id: demo, title: Demo, buttons: []}]".write(to: example, atomically: true, encoding: .utf8)
+    let state = AppState(requireStopConfirmation: false, configURL: base, preferences: preferences)
+    #expect(state.configurationFiles == [base, example])
+    state.selectConfiguration(example)
+    #expect(state.configURL == example)
+    #expect(state.configuration?.tabs.map(\.id) == ["demo"])
+    #expect(preferences.string(forKey: "selectedConfiguration/\(directory.path)") == example.path)
+    try "tabs: [invalid".write(to: example, atomically: true, encoding: .utf8)
+    state.reload()
+    #expect(state.configuration == nil)
+    #expect(state.errorMessage?.contains(example.path) == true)
+    state.selectConfiguration(base)
+    #expect(state.configuration?.tabs.map(\.id) == ["base"])
+    try FileManager.default.removeItem(at: base)
+    state.refreshConfigurations()
+    #expect(state.configURL == example)
+    #expect(state.configurationFiles == [example])
+    try FileManager.default.removeItem(at: example)
+    state.refreshConfigurations()
+    #expect(state.configurationFiles.isEmpty)
+    #expect(state.configuration == nil)
+}
+
+@MainActor
+@Test func exampleOnlyInstallationLoadsExampleAndSelectorExposesCopyablePaths() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let example = directory.appending(path: "config.example.yaml")
+    try "tabs: [{id: demo, title: Demo, buttons: []}]".write(to: example, atomically: true, encoding: .utf8)
+    let state = AppState(requireStopConfirmation: false, configURL: directory.appending(path: "config.yaml"))
+    #expect(state.configURL == example)
+    #expect(state.configuration?.tabs.first?.id == "demo")
+    let coordinator = ConfigurationSelector.Coordinator()
+    coordinator.parent = ConfigurationSelector(files: [example], selectedURL: example, select: { _ in })
+    let item = try #require(coordinator.makeMenu().items.first)
+    #expect(item.toolTip == example.path)
+    #expect(item.state == .on)
+    let row = try #require(item.view as? ConfigurationMenuRow)
+    #expect(row.url == example)
+    #expect(row.subviews.count == 2)
+}
+
+@MainActor
+@Test func selectorHidesRunningProjectsFromOtherConfigurations() async throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let base = directory.appending(path: "config.yaml")
+    let example = directory.appending(path: "config.example.yaml")
+    try """
+    tabs:
+      - id: event-search
+        title: Event Search
+        buttons:
+          - id: server
+            title: Server
+            on_deactivate: {sigint: true, sigkill: true, timeout: 0.2s}
+            scripts: [{id: server, title: Server, executable: /bin/sleep, arguments: [60]}]
+    """.write(to: base, atomically: true, encoding: .utf8)
+    try "tabs: [{id: cosmic, title: Cosmic, buttons: []}]".write(to: example, atomically: true, encoding: .utf8)
+    let state = AppState(requireStopConfirmation: false, configURL: base)
+    defer { Task { await state.shutdown() } }
+    let tab = try #require(state.selectedTab)
+    state.startMode(tab.buttons[0], in: tab)
+    try await waitUntil { state.runningMode(in: tab) != nil && state.busyTabs.isEmpty }
+    let runID = try #require(state.selectedOutputID)
+    state.selectConfiguration(example)
+    #expect(state.configuration?.tabs.map(\.id) == ["cosmic"])
+    #expect(state.visibleScripts.isEmpty)
+    #expect(state.selectedOutputID == nil)
+    #expect(state.logs[runID]?.status?.isRunning == true)
+    state.selectConfiguration(base)
+    #expect(state.visibleScripts.map(\.id) == [runID])
+    state.selectConfiguration(example)
+    await state.stop(runID)
+    state.reload()
+    #expect(state.configuration?.tabs.map(\.id) == ["cosmic"])
+    #expect(state.visibleScripts.isEmpty)
+    await state.shutdown()
+}
+
+@MainActor
+@Test func editingConfigurationPriorityRefreshesSelectorWithoutSwitchingSelection() throws {
+    let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let base = directory.appending(path: "config.yaml")
+    let ringcentral = directory.appending(path: "config.ringcentral.yaml")
+    try "tabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
+    try "sort_order: 0\ntabs: []".write(to: ringcentral, atomically: true, encoding: .utf8)
+    let state = AppState(requireStopConfirmation: false, configURL: base)
+    #expect(state.configurationFiles == [ringcentral, base])
+    #expect(state.configURL == base)
+    try "sort_order: -1\ntabs: [{id: base, title: Base, buttons: []}]".write(to: base, atomically: true, encoding: .utf8)
+    state.refreshConfigurations()
+    #expect(state.configurationFiles == [base, ringcentral])
+    #expect(state.configURL == base)
+    #expect(state.configuration?.sortOrder == -1)
+}
+
+@MainActor
+@Test func repeatedSelectorUpdatesNeverInsertDuplicateHeadingItems() {
+    let files = ["config.ringcentral.yaml", "config.example.yaml"].map {
+        URL(fileURLWithPath: "/tmp/selector-regression/\($0)")
+    }
+    let button = NSPopUpButton(frame: .zero, pullsDown: false)
+    let coordinator = ConfigurationSelector.Coordinator()
+    for index in 0..<30 {
+        let selected = files[index % files.count]
+        coordinator.parent = ConfigurationSelector(files: files, selectedURL: selected, select: { _ in })
+        coordinator.update(button)
+        #expect(button.numberOfItems == files.count)
+        #expect(button.menu?.items.compactMap { $0.representedObject as? URL } == files)
+        #expect(button.title == selected.lastPathComponent)
+        #expect(button.selectedItem?.representedObject as? URL == selected)
+    }
+    coordinator.parent = ConfigurationSelector(files: [], selectedURL: files[0], select: { _ in })
+    coordinator.update(button)
+    #expect(button.numberOfItems == 0)
+    #expect(!button.isEnabled)
+    coordinator.parent = ConfigurationSelector(files: files, selectedURL: files[1], select: { _ in })
+    coordinator.update(button)
+    #expect(button.numberOfItems == files.count)
+    #expect(button.title == files[1].lastPathComponent)
 }

@@ -1,0 +1,57 @@
+{
+  "euler": [
+    {
+      "id": "euler-analysis",
+      "title": "Introduction to the Analysis of the Infinite",
+      "subtitle": "Leonhard Euler",
+      "description": "A mock catalogue entry introducing Euler’s work on functions, series, and analysis.",
+      "meta": "Historical work · 1748"
+    },
+    {
+      "id": "euler-letters",
+      "title": "Letters to a German Princess",
+      "subtitle": "Leonhard Euler",
+      "description": "A mock reading card about Euler’s accessible explanations of scientific and mathematical ideas.",
+      "meta": "Science correspondence"
+    },
+    {
+      "id": "euler-bridges",
+      "title": "The Seven Bridges of Königsberg",
+      "subtitle": "Graph theory",
+      "description": "A demonstration entry about the bridge problem that helped establish graph theory.",
+      "meta": "Mathematical milestone · 1736"
+    }
+  ],
+  "gauss": [
+    {
+      "id": "gauss-arithmetic",
+      "title": "Disquisitiones Arithmeticae",
+      "subtitle": "Carl Friedrich Gauss",
+      "description": "A mock catalogue entry for Gauss’s influential work on number theory.",
+      "meta": "Historical work · 1801"
+    },
+    {
+      "id": "gauss-orbits",
+      "title": "Theoria Motus",
+      "subtitle": "Carl Friedrich Gauss",
+      "description": "A demonstration reading card connecting mathematics with the determination of celestial orbits.",
+      "meta": "Celestial mechanics · 1809"
+    }
+  ],
+  "noether": [
+    {
+      "id": "noether-symmetry",
+      "title": "Symmetry and Conservation",
+      "subtitle": "Emmy Noether",
+      "description": "A demonstration reading card about the connection between continuous symmetries and conservation laws.",
+      "meta": "Mathematical physics · 1918"
+    },
+    {
+      "id": "noether-algebra",
+      "title": "A New Language for Algebra",
+      "subtitle": "Emmy Noether",
+      "description": "A mock reading card introducing ideals, rings, and the structural approach to algebra.",
+      "meta": "Abstract algebra"
+    }
+  ]
+}

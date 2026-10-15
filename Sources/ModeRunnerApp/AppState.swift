@@ -30,6 +30,12 @@ struct ScriptRun: Identifiable {
 
 enum LifecycleAction { case start, restart, stop }
 
+struct ProcessStopConfirmation: Identifiable {
+    let id = UUID()
+    let message: String
+    let processes: [String]
+}
+
 enum ButtonActivity { case idle, transitioning, running, partial, failed }
 
 struct CatalogState {
@@ -42,12 +48,16 @@ struct CatalogState {
 final class AppState: ObservableObject {
     @Published private(set) var configuration: RunnerConfiguration?
     @Published private(set) var errorMessage: String?
+    @Published var pendingStopConfirmation: ProcessStopConfirmation?
+    private var stopConfirmationContinuation: CheckedContinuation<Bool, Never>?
+    private let requireStopConfirmation: Bool
     @Published var selectedTabID: String? { didSet { selectVisibleOutput() } }
     @Published var selectedOutputID: String?
     @Published private(set) var viewedModes: [String: String] = [:]
     @Published private(set) var activeModes: [String: String] = [:]
     @Published private(set) var logs: [String: ScriptLog] = [:]
     @Published private(set) var runs: [ScriptRun] = []
+    @Published private(set) var pinnedRuns: [String: String] = [:]
     @Published private(set) var catalogs: [String: CatalogState] = [:]
     @Published private(set) var busyTabs: Set<String> = []
     @Published private(set) var transitioningModes: [String: Set<String>] = [:]
@@ -56,21 +66,35 @@ final class AppState: ObservableObject {
     @Published private(set) var stoppingRuns: Set<String> = []
     @Published private(set) var modeActions: [String: LifecycleAction] = [:]
 
-    let configURL: URL
+    @Published private(set) var configURL: URL
+    @Published private(set) var configurationFiles: [URL]
+    private let configurationDirectory: URL
     private let relay: EventRelay
     private let supervisor: ProcessSupervisor
     private let preferences: UserDefaults
-    private let legacyPreferences: UserDefaults?
+    private var selectionPreferenceKey: String { "selectedConfiguration/\(configurationDirectory.standardizedFileURL.path)" }
     private var tabOrderKey: String { "projectTabOrder/\(configURL.standardizedFileURL.path)" }
     private var catalogTasks: [String: Task<Void, Never>] = [:]
     private var discoveryTask: Task<Void, Never>?
     @Published private(set) var discoveringProcesses = false
 
-    init(configURL: URL = ConfigurationLoader.defaultURL, preferences: UserDefaults = .standard,
-         legacyPreferences: UserDefaults? = UserDefaults(suiteName: "dev.domyshev.script-mode-runner")) {
-        self.configURL = configURL
+    init(requireStopConfirmation: Bool = true, configURL: URL? = nil, preferences: UserDefaults = .standard) {
+        self.requireStopConfirmation = requireStopConfirmation
+        let requested = configURL ?? ConfigurationLoader.defaultURL
+        self.configurationDirectory = requested.deletingLastPathComponent()
+        let files = ConfigurationLoader.configurations(in: configurationDirectory)
+        self.configurationFiles = files
+        let key = "selectedConfiguration/\(configurationDirectory.standardizedFileURL.path)"
+        let saved = preferences.string(forKey: key).map { URL(fileURLWithPath: $0) }
+        if configURL == nil, ProcessInfo.processInfo.environment["MODE_RUNNER_CONFIG"] == nil,
+           let saved, files.contains(saved) {
+            self.configURL = saved
+        } else if FileManager.default.fileExists(atPath: requested.path) {
+            self.configURL = requested
+        } else {
+            self.configURL = files.first ?? requested
+        }
         self.preferences = preferences
-        self.legacyPreferences = legacyPreferences
         let relay = EventRelay()
         self.relay = relay
         supervisor = ProcessSupervisor { event in relay.receive(event) }
@@ -80,35 +104,97 @@ final class AppState: ObservableObject {
 
     var selectedTab: RunnerTab? { configuration?.tabs.first { $0.id == selectedTabID } }
     var visibleScripts: [ScriptRun] {
+        guard let selectedTab else { return [] }
         let context = selectedTabID.flatMap { viewedModes[$0] }
-        let candidates = runs.filter { $0.tabID == selectedTabID && $0.contextModeID == context }
+        let projects = Set(configuration?.tabs.map(\.id) ?? [])
+        let pinned = runs.filter {
+            pinnedRuns[$0.id] == configURL.standardizedFileURL.path && projects.contains($0.tabID)
+        }
+        let local = runs.filter { $0.tabID == selectedTabID && $0.contextModeID == context }
         // A configured script owns one visible log; restarting replaces its displayed run.
         var seen = Set<String>()
-        return candidates.reversed().filter { seen.insert($0.isMenu ? $0.id : "\($0.buttonID)/\($0.script.id)").inserted }.reversed()
+        let latest = local.reversed().filter { seen.insert(processTabKey($0)).inserted }.reversed()
+        let scripts = selectedTab.buttons.first { $0.id == context }?.scripts ?? []
+        let ordered = latest.enumerated().sorted { left, right in
+            let leftIndex = left.element.isMenu ? Int.max : scripts.firstIndex { $0.id == left.element.script.id } ?? Int.max
+            let rightIndex = right.element.isMenu ? Int.max : scripts.firstIndex { $0.id == right.element.script.id } ?? Int.max
+            return leftIndex == rightIndex ? left.offset < right.offset : leftIndex < rightIndex
+        }.map(\.element)
+        seen = []
+        // Keep the project's tab order; pins from other projects or modes follow it.
+        return (ordered + pinned).filter { seen.insert(processTabKey($0)).inserted }
     }
+
+    private func processTabKey(_ run: ScriptRun) -> String {
+        run.isMenu ? run.id : "\(run.tabID)/\(run.buttonID)/\(run.script.id)"
+    }
+
+    func isPinned(_ id: String) -> Bool {
+        pinnedRuns[id] == configURL.standardizedFileURL.path
+    }
+
+    func togglePin(_ id: String) {
+        guard visibleScripts.contains(where: { $0.id == id }) else { return }
+        if isPinned(id) { pinnedRuns[id] = nil }
+        else { pinnedRuns[id] = configURL.standardizedFileURL.path }
+        selectVisibleOutput()
+    }
+
+    func processTabLabel(_ run: ScriptRun) -> String {
+        let title = processTabTitle(run.script.title)
+        guard run.tabID != selectedTabID else { return title }
+        return "\(processProjectTitle(run)) · \(title)"
+    }
+
+    func processProjectTitle(_ run: ScriptRun) -> String {
+        configuration?.tabs.first { $0.id == run.tabID }?.title ?? run.tabID
+    }
+
+    func processModeTitle(_ run: ScriptRun) -> String {
+        let modeID = run.contextModeID ?? run.buttonID
+        return configuration?.tabs.first { $0.id == run.tabID }?.buttons.first { $0.id == modeID }?.title ?? modeID
+    }
+
     var selectedRun: ScriptRun? { runs.first { $0.id == selectedOutputID } }
 
     func catalogKey(_ button: RunnerMode, tab: RunnerTab) -> String { "\(tab.id)/\(button.id)" }
 
+    func selectConfiguration(_ url: URL) {
+        guard configurationFiles.contains(url), configURL != url else { return }
+        configURL = url
+        preferences.set(url.path, forKey: selectionPreferenceKey)
+        reload()
+    }
+
+    func refreshConfigurations() {
+        let files = ConfigurationLoader.configurations(in: configurationDirectory)
+        guard files != configurationFiles else { return }
+        configurationFiles = files
+        if !FileManager.default.fileExists(atPath: configURL.path) {
+            configURL = files.first ?? configurationDirectory.appending(path: "config.yaml")
+            preferences.set(configURL.path, forKey: selectionPreferenceKey)
+        }
+        reload()
+    }
+
     func reload() {
+        resolveStopConfirmation(false)
+        configurationFiles = ConfigurationLoader.configurations(in: configurationDirectory)
+        if !FileManager.default.fileExists(atPath: configURL.path), let first = configurationFiles.first {
+            configURL = first
+            preferences.set(first.path, forKey: selectionPreferenceKey)
+        }
         do {
             let loaded = try ConfigurationLoader().load(from: configURL)
-            // Keep removed tabs reachable while they still own logs or processes.
-            let retained = configuration?.tabs.filter { old in
-                !loaded.tabs.contains { $0.id == old.id } && runs.contains { $0.tabID == old.id }
-            } ?? []
-            let tabs = loaded.tabs + retained
+            let tabs = loaded.tabs
             let savedOrder = preferences.stringArray(forKey: tabOrderKey)
-                ?? legacyPreferences?.stringArray(forKey: tabOrderKey) ?? []
-            if preferences.stringArray(forKey: tabOrderKey) == nil, !savedOrder.isEmpty {
-                preferences.set(savedOrder, forKey: tabOrderKey)
-            }
+                ?? []
             let positions = Dictionary(savedOrder.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
             configuration = RunnerConfiguration(tabs: tabs.enumerated().sorted {
                 let left = positions[$0.element.id] ?? savedOrder.count + $0.offset
                 let right = positions[$1.element.id] ?? savedOrder.count + $1.offset
                 return left < right
-            }.map(\.element))
+            }.map(\.element), sortOrder: loaded.sortOrder)
             errorMessage = nil
             if !configuration!.tabs.contains(where: { $0.id == selectedTabID }) { selectedTabID = configuration?.tabs.first?.id }
             for task in catalogTasks.values { task.cancel() }
@@ -123,7 +209,17 @@ final class AppState: ObservableObject {
             }
             selectVisibleOutput()
             discoverExistingProcesses()
-        } catch { errorMessage = "\(configURL.path)\n\(error.localizedDescription)" }
+        } catch {
+            discoveryTask?.cancel()
+            discoveringProcesses = false
+            for task in catalogTasks.values { task.cancel() }
+            catalogTasks = [:]
+            catalogs = [:]
+            configuration = nil
+            selectedTabID = nil
+            selectedOutputID = nil
+            errorMessage = "\(configURL.path)\n\(error.localizedDescription)"
+        }
     }
 
     private func discoverExistingProcesses() {
@@ -233,7 +329,7 @@ final class AppState: ObservableObject {
               let target = tabs.firstIndex(where: { $0.id == targetID }), source != target else { return false }
         let tab = tabs.remove(at: source)
         tabs.insert(tab, at: target)
-        configuration = RunnerConfiguration(tabs: tabs)
+        configuration = RunnerConfiguration(tabs: tabs, sortOrder: configuration?.sortOrder)
         preferences.set(tabs.map(\.id), forKey: tabOrderKey)
         return true
     }
@@ -250,11 +346,12 @@ final class AppState: ObservableObject {
     }
 
     func runningMode(in tab: RunnerTab) -> RunnerMode? {
-        tab.buttons.first { mode in
+        let liveModes = tab.buttons.filter { mode in
             mode.source == nil && runs.contains {
                 $0.tabID == tab.id && !$0.isMenu && $0.buttonID == mode.id && logs[$0.id]?.status?.isRunning == true
             }
         }
+        return liveModes.first { $0.id == activeModes[tab.id] } ?? liveModes.first
     }
 
     func startMode(_ mode: RunnerMode, in tab: RunnerTab) {
@@ -292,12 +389,34 @@ final class AppState: ObservableObject {
                 busyTabs.remove(tab.id)
             }
             await discoveryTask?.value
-            let stopping = runs.filter { $0.tabID == tab.id && !$0.isMenu && logs[$0.id]?.status?.isRunning == true }
+            let live = runs.filter { $0.tabID == tab.id && !$0.isMenu && logs[$0.id]?.status?.isRunning == true }
             // Starting an already discovered mode must not duplicate or restart its processes.
-            if skipIfAlreadyRunning, !stopping.isEmpty, stopping.allSatisfy({ $0.buttonID == mode.id }) {
+            if skipIfAlreadyRunning, !live.isEmpty, live.allSatisfy({ $0.buttonID == mode.id }) {
                 viewedModes[tab.id] = mode.id
                 selectVisibleOutput()
                 return
+            }
+            let switching = startAfterStop && action != .restart
+            let retained = switching ? live.filter { isPinned($0.id) && $0.buttonID == mode.id } : []
+            let scriptsToStart = mode.scripts.filter { script in
+                !retained.contains { $0.script.id == script.id }
+            }
+            if startAfterStop, let warning = pinnedPortConflict(scriptsToStart,
+                excluding: switching ? [] : Set(live.filter { $0.buttonID == mode.id }.map(\.id))) {
+                errorMessage = warning
+                return
+            }
+            errorMessage = nil
+            let stopping = live.filter { run in
+                switching ? !isPinned(run.id) : run.buttonID == mode.id
+            }
+            if switching, stopping.contains(where: { $0.buttonID != mode.id }) {
+                guard await confirmStopping(stopping),
+                      !stopping.contains(where: { isPinned($0.id) }) else { return }
+                if let warning = pinnedPortConflict(scriptsToStart) {
+                    errorMessage = warning
+                    return
+                }
             }
             let stoppingModes: Set<String> = stopping.isEmpty ? [mode.id] : Set(stopping.map(\.buttonID))
             if transitioningModes[tab.id] != stoppingModes { transitioningModes[tab.id] = stoppingModes }
@@ -317,7 +436,7 @@ final class AppState: ObservableObject {
                 selectVisibleOutput()
                 activeModes[tab.id] = mode.id
                 let batchID = UUID().uuidString
-                for (index, script) in mode.scripts.enumerated() {
+                for (index, script) in scriptsToStart.enumerated() {
                     await start(script, button: mode, tab: tab, batchID: batchID, selectOutput: index == 0)
                 }
                 // Keep all mode buttons locked until the relay reports startup completion.
@@ -325,6 +444,40 @@ final class AppState: ObservableObject {
                     try? await Task.sleep(for: .milliseconds(20))
                 }
             }
+        }
+    }
+
+    private func pinnedPortConflict(_ scripts: [RunnerScript], excluding: Set<String> = []) -> String? {
+        let ports = Set(scripts.compactMap { configuredLocalURL(for: $0)?.port })
+        guard let run = runs.first(where: {
+            isPinned($0.id) && !excluding.contains($0.id) && logs[$0.id]?.status?.isRunning == true &&
+                configuredLocalURL(for: $0.script)?.port.map { ports.contains($0) } == true
+        }), let port = configuredLocalURL(for: run.script)?.port else { return nil }
+        return "Start cancelled: port \(port) is used by pinned process “\(run.script.displayCommand)” in project “\(processProjectTitle(run))”. Stop it to free the port."
+    }
+
+    func resolveStopConfirmation(_ confirmed: Bool) {
+        let continuation = stopConfirmationContinuation
+        stopConfirmationContinuation = nil
+        pendingStopConfirmation = nil
+        continuation?.resume(returning: confirmed)
+    }
+
+    private func confirmStopping(_ stopping: [ScriptRun], port: Int? = nil) async -> Bool {
+        guard requireStopConfirmation, !stopping.isEmpty else { return true }
+        guard pendingStopConfirmation == nil else { return false }
+        let modes = Array(Set(stopping.map(processModeTitle))).sorted().map { "“\($0)”" }.joined(separator: ", ")
+        let message: String
+        if let port {
+            message = "Port \(port) is used by a process in mode \(modes). It will be stopped before starting the selected process."
+        } else {
+            message = "All unpinned processes in mode \(modes) will be stopped before starting the new mode."
+        }
+        let confirmation = ProcessStopConfirmation(message: message,
+            processes: stopping.map { processTabTitle($0.script.title) })
+        return await withCheckedContinuation { continuation in
+            stopConfirmationContinuation = continuation
+            pendingStopConfirmation = confirmation
         }
     }
 
@@ -345,6 +498,17 @@ final class AppState: ObservableObject {
         let id = UUID().uuidString
         runs.append(ScriptRun(id: id, tabID: tab.id, batchID: batchID ?? id, buttonID: button.id, script: script, policy: button.onDeactivate, isMenu: isMenu, isSeed: isMenu && button.source?.type != .packageScripts, contextModeID: isMenu ? viewedModes[tab.id] : button.id))
         logs[id] = ScriptLog(status: .starting)
+        if !isMenu {
+            let previousPins = runs.filter {
+                $0.id != id && !$0.isMenu && $0.tabID == tab.id && $0.buttonID == button.id &&
+                $0.script.id == script.id && isPinned($0.id)
+            }.map(\.id)
+            for previous in previousPins {
+                pinnedRuns[previous] = nil
+                if selectedOutputID == previous { selectedOutputID = id }
+            }
+            if !previousPins.isEmpty { pinnedRuns[id] = configURL.standardizedFileURL.path }
+        }
         if selectOutput && selectedTabID == tab.id { selectedOutputID = id }
         pruneHistory()
         return id
@@ -399,13 +563,18 @@ final class AppState: ObservableObject {
             guard other.id != run.id, logs[other.id]?.status?.isRunning == true else { return false }
             if run.isSeed && other.isSeed && other.script.cwd == run.script.cwd { return true }
             guard other.tabID == run.tabID else { return false }
-            if !run.isMenu && !other.isMenu && other.buttonID != run.buttonID { return true }
+            // Other modes are stopped during an individual start, except pinned runs.
+            if !run.isMenu && !other.isMenu && other.buttonID != run.buttonID { return false }
             return other.buttonID == run.buttonID && other.script == run.script
         }
     }
 
     func startSelected() {
         guard canStartSelected, let run = selectedRun else { return }
+        if let warning = pinnedPortConflict([run.script], excluding: [run.id]) {
+            errorMessage = warning
+            return
+        }
         startingRuns.insert(run.id)
         busyTabs.insert(run.tabID)
         let previousLog = logs[run.id]
@@ -418,6 +587,37 @@ final class AppState: ObservableObject {
             await discoveryTask?.value
             guard canStart(run) else {
                 logs[run.id] = previousLog
+                return
+            }
+            if let warning = pinnedPortConflict([run.script], excluding: [run.id]) {
+                logs[run.id] = previousLog
+                errorMessage = warning
+                return
+            }
+            errorMessage = nil
+            let targetPort = configuredLocalURL(for: run.script)?.port
+            let stopping = run.isMenu ? [] : runs.filter {
+                $0.tabID == run.tabID && !$0.isMenu && $0.buttonID != run.buttonID &&
+                    !isPinned($0.id) && logs[$0.id]?.status?.isRunning == true &&
+                    (targetPort == nil || configuredLocalURL(for: $0.script)?.port == targetPort)
+            }
+            guard await confirmStopping(stopping, port: targetPort),
+                  !stopping.contains(where: { isPinned($0.id) }) else {
+                logs[run.id] = previousLog
+                return
+            }
+            if let warning = pinnedPortConflict([run.script], excluding: [run.id]) {
+                logs[run.id] = previousLog
+                errorMessage = warning
+                return
+            }
+            for previous in stopping { await stop(previous.id) }
+            for _ in 0..<100 where stopping.contains(where: { logs[$0.id]?.status?.isRunning == true }) {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            guard !stopping.contains(where: { logs[$0.id]?.status?.isRunning == true }) else {
+                logs[run.id] = previousLog
+                errorMessage = "The previous mode is still stopping. Stop its processes before starting another mode."
                 return
             }
             guard let index = runs.firstIndex(where: { $0.id == run.id }) else { return }
@@ -469,6 +669,7 @@ final class AppState: ObservableObject {
 
     func close(_ id: String) {
         guard canClose(id) else { return }
+        pinnedRuns[id] = nil
         runs.removeAll { $0.id == id }
         logs[id] = nil
         selectVisibleOutput()
@@ -480,6 +681,7 @@ final class AppState: ObservableObject {
     }
 
     func shutdown() async {
+        resolveStopConfirmation(false)
         discoveryTask?.cancel()
         await discoveryTask?.value
         for task in catalogTasks.values { task.cancel() }
@@ -489,6 +691,7 @@ final class AppState: ObservableObject {
     }
 
     func preserveProcesses(executablePath: String) async throws {
+        resolveStopConfirmation(false)
         discoveryTask?.cancel()
         await discoveryTask?.value
         for task in catalogTasks.values { task.cancel() }
@@ -500,14 +703,14 @@ final class AppState: ObservableObject {
     private func selectVisibleOutput() {
         let scripts = visibleScripts
         if !scripts.contains(where: { $0.id == selectedOutputID }) {
-            selectedOutputID = scripts.first(where: { !$0.isMenu && logs[$0.id]?.hasDetectionMessage == true })?.id
+            selectedOutputID = scripts.first(where: { $0.tabID == selectedTabID && !$0.isMenu && logs[$0.id]?.hasDetectionMessage == true })?.id
                 ?? scripts.last?.id
         }
     }
 
     private func pruneHistory() {
         for tabID in Set(runs.map(\.tabID)) {
-            let finished = runs.filter { $0.tabID == tabID && logs[$0.id]?.status?.isRunning != true && $0.id != selectedOutputID }
+            let finished = runs.filter { $0.tabID == tabID && logs[$0.id]?.status?.isRunning != true && $0.id != selectedOutputID && pinnedRuns[$0.id] == nil }
             for run in finished.prefix(max(0, finished.count - 20)) { close(run.id) }
         }
         let budget = 100 * 1024 * 1024

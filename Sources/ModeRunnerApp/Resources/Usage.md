@@ -2,9 +2,11 @@
 
 Mode Runner is a macOS 14+ menu bar app for starting local commands, switching between groups of commands, and reading their output. Click its terminal icon in the menu bar to open the app.
 
+Click the icon again or click outside the app to dismiss the workspace. Running commands continue while the window is hidden.
+
 ## Configure your workspace
 
-Create `~/.config/mode-runner/config.yaml`. Each top-level tab represents a project; each button with `scripts` defines a mode. Replace the example working directory and commands with your own:
+Create `~/.mode-runner/config.yaml`. Each top-level tab represents a project; each button with `scripts` defines a mode. Replace the example working directory and commands with your own:
 
 ```yaml
 tabs:
@@ -32,7 +34,6 @@ tabs:
 - `command` runs through an interactive login zsh by default, loading your shell's tool setup. Install the tools and project dependencies before running commands.
 - For direct execution, use `executable: /absolute/path/to/program` and `arguments: [arg1, arg2]` instead of `command`. Direct executables inherit the app environment; configure `PATH` when needed.
 - Add `environment` to a script to provide environment variables, for example `environment: {NODE_ENV: development}`.
-- Existing `~/.config/script-mode-runner/config.yaml` files are used when the new default file is absent. To choose another file when launching from Terminal, set `MODE_RUNNER_CONFIG=/path/to/config.yaml`.
 
 After saving the file, choose **Reload configuration** in the top-right menu. Hover over that item to see the active configuration path. Reload updates the interface and command catalogs while keeping running processes and logs.
 
@@ -46,8 +47,8 @@ After saving the file, choose **Reload configuration** in the top-right menu. Ho
 
 ## Read and control logs
 
-- Select a command's log tab to see its output and status. Ports appear as `command • 3015`. Titles stay fully visible while the tabs fit; longer titles shorten with an ellipsis when space is limited. Hover over a tab for aligned `command:` and `port:` rows showing the launch command and configured port. Scroll horizontally when there are too many tabs to fit comfortably.
-- **Stop** stops the selected command. **Reload** restarts only that command with fresh output. **Start** runs a stopped or completed command again when compatible with the current mode.
+- Select a command's log tab to see its output and status. Ports appear as `command • 3015`. Titles stay fully visible while the tabs fit; longer titles shorten with an ellipsis when space is limited. Hover over a tab for aligned `mode:`, `command:`, and `port:` rows showing the launch command and configured port. Scroll horizontally when there are too many tabs to fit comfortably.
+- **Stop** stops the selected command. **Reload** restarts only that command with fresh output. **Start** runs only the selected stopped or completed command. If its configured port is occupied by an unpinned command in another mode, a confirmation lists that command before stopping it. Commands on other ports and pinned processes keep running; a pinned port conflict cancels the start before anything is stopped.
 - **Clear** clears the selected output. Configured mode command tabs stay available even after stopping or completing. Only completed command-menu and seed log tabs have a close control.
 - Click HTTP or HTTPS links in output to open them in your default browser. A running process's latest detected URL also appears below its status.
 - Output is kept in memory and bounded: up to 5 MB per process and 100 MB shared across logs. Older output may be discarded; logs are not restored after quitting.
@@ -88,3 +89,19 @@ Existing processes display a detection message instead of captured output: their
 - **No output for a detected process:** this is expected; restart it through Mode Runner to capture new output.
 
 For building, installing, and updating the app, see the project's [installation guide](https://github.com/domyshev-labs/script-mode-runner/blob/master/INSTALL.md). Source code and configuration examples are on [GitHub](https://github.com/domyshev-labs/script-mode-runner).
+
+
+The configuration selector to the left of the actions menu lists files `config.yaml` and `config.{name}.yaml` from `~/.mode-runner/`. Hover a filename to see its full path; use its copy button to copy the path. Selection is remembered, and adding or removing files updates the list while the popover is visible. Only projects from the selected file are shown. The installer provides `config.example.yaml` once on a fresh installation. It can be deleted manually. There is no overwrite mechanism: `overwrite` is just an ordinary configuration name. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.
+
+Configurations with a top-level integer `sort_order` appear first, ordered by increasing value. Files without this property appear below all explicitly ordered files. Equal priorities sort by filename, with `config.yaml` first within that group. Negative values are supported. The list updates while the popover is visible when editing priorities changes the order.
+
+```yaml
+sort_order: 10
+tabs: []
+```
+
+Use the pin button on a process log tab to keep it visible when switching projects or modes. Pinning preserves the project's process tab order. Pinned tabs from other projects appear after the current project's tabs and include their project's name. Selecting a pinned tab shows its log, and its Start, Stop, and Reload controls operate on the original process. Unpinning restores normal project visibility. Pins last for the current app session and are scoped to the selected configuration. Restarting a configured command carries its pin to the new run, and pinned completed logs are protected from automatic history cleanup. Closing a completed log manually removes its pin.
+
+Pinned processes keep running when starting another mode. A conflicting port in a pinned process blocks the entire launch before any processes are stopped; the warning identifies the port, process, and original project. Explicit Stop and Reload actions still control pinned processes. Returning to a mode reuses its running pinned commands.
+
+Before starting a different mode, a confirmation names the running mode and lists every unpinned process that will be stopped. Cancel leaves the current processes running. Confirm stops the listed processes and launches the new mode. For an individual process with a configured port, only conflicting unpinned processes are stopped after confirmation. Commands without a configured port use the mode change confirmation.

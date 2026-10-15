@@ -1,0 +1,24 @@
+{
+  "id": "mathematical-minds",
+  "title": "Mathematical Minds",
+  "tagline": "Ideas that changed the way we see the world.",
+  "source": "Open Library",
+  "sourceURL": "https://openlibrary.org/",
+  "defaultScenario": "euler",
+  "port": 4020,
+  "mockPort": 4025,
+  "scenarios": [
+    {
+      "id": "euler",
+      "title": "Leonhard Euler"
+    },
+    {
+      "id": "gauss",
+      "title": "Carl Friedrich Gauss"
+    },
+    {
+      "id": "noether",
+      "title": "Emmy Noether"
+    }
+  ]
+}

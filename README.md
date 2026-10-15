@@ -48,14 +48,13 @@ published on the project website later.
 
 ## Quick start
 
-1. Create `~/.config/mode-runner/config.yaml` using `Examples/config.yaml` as a template.
+1. Use the example provided by the installer, or create `~/.mode-runner/config.yaml` using `Examples/config.yaml` as a template.
 2. Build and run the app with `swift run ModeRunner`.
 3. Open the terminal icon in the menu bar.
 
-Existing configurations at `~/.config/script-mode-runner/config.yaml` remain
-supported when the new default path is absent. `MODE_RUNNER_CONFIG` selects a
-custom configuration; `SCRIPT_MODE_RUNNER_CONFIG` remains a compatible alias.
-The renamed app also imports locally saved project tab order.
+Click the icon again or click outside the app to dismiss the workspace. Running commands continue while the window is hidden.
+
+The installer creates `~/.mode-runner/config.example.yaml` on a fresh installation. Select a file from the header dropdown; files follow their optional `sort_order`, then their filenames. Each item shows its full path on hover and has a copy-path button. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.
 
 A command can use an `executable`/`arguments` pair or a `command` string executed through a shell. Yarn, npm, Python, local binaries, and other programs are handled the same way.
 
@@ -69,6 +68,12 @@ The menu bar image is generated from the same vector artwork as the app icon. Af
 swift Scripts/generate-icon.swift .build/menu-icon.iconset
 cp .build/menu-icon.iconset/icon_128x128.png Sources/ModeRunnerApp/Resources/MenuBarIcon.png
 ```
+
+## Science demos and configuration selection
+
+Three independent React + Vite demos cover space imagery, mathematical reading, and earthquake observations. Launch them through Yarn in Mock or Live API mode, and use Mode Runner's seed menus to change local datasets. See [DemoApplications/README.md](DemoApplications/README.md) for installation and the demonstration flow; [Examples/config.example.yaml](Examples/config.example.yaml) provides the configuration.
+
+Configurations are independent files in `~/.mode-runner/`. The selector remembers the chosen file and checks the directory every second while the popover is visible. Only projects from the selected configuration appear. Running processes keep working when switching files. `config.overwrite.yaml`, if present, is an ordinary selectable configuration with no special priority.
 
 ## Test applications
 
@@ -253,5 +258,19 @@ MODE_RUNNER_CONFIG="$PWD/Examples/dropdowns.yaml" swift run ModeRunner
 The demo seed runner only prints arguments; it does not modify data. Completed
 history is limited to 20 unselected runs per project tab (plus a selected log).
 Each log retains at most 5 MB, and a 100 MB shared budget trims older output when
-necessary. Reload keeps running processes and their logs, including removed
-project tabs that still own logs when the configuration is reloaded.
+necessary. Reload keeps running processes and their logs internally, but the project list
+contains only projects from the selected configuration. Removed projects are
+hidden even if their processes are still running or they have saved logs.
+
+Configurations with a top-level integer `sort_order` appear first, ordered by increasing value. Files without this property appear below all explicitly ordered files. Equal priorities sort by filename, with `config.yaml` first within that group. Negative values are supported. The list updates while the popover is visible when editing priorities changes the order.
+
+```yaml
+sort_order: 10
+tabs: []
+```
+
+Use the pin button on a process log tab to keep it visible when switching projects or modes. Pinning preserves the project's process tab order. Pinned tabs from other projects appear after the current project's tabs and include their project's name. Selecting a pinned tab shows its log, and its Start, Stop, and Reload controls operate on the original process. Unpinning restores normal project visibility. Pins last for the current app session and are scoped to the selected configuration. Restarting a configured command carries its pin to the new run, and pinned completed logs are protected from automatic history cleanup. Closing a completed log manually removes its pin.
+
+Pinned processes keep running when starting another mode. A conflicting port in a pinned process blocks the entire launch before any processes are stopped; the warning identifies the port, process, and original project. Explicit Stop and Reload actions still control pinned processes. Returning to a mode reuses its running pinned commands.
+
+Switching modes requires confirmation before stopping unpinned processes, with the running mode name and a list of affected commands. An individual start asks to stop only unpinned commands occupying its configured port; other ports remain running. Cancel preserves existing processes and logs. Confirm stops the listed commands and continues the requested launch.

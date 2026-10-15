@@ -3,10 +3,12 @@ import ModeRunnerCore
 import SwiftUI
 
 struct ProcessTabTooltipContent {
+    let mode: String
     let command: String
     let port: String
 
-    init(script: RunnerScript) {
+    init(script: RunnerScript, mode: String) {
+        self.mode = mode
         command = script.displayCommand
         port = configuredLocalURL(for: script)?.port.map(String.init) ?? "Not configured"
     }
@@ -15,13 +17,14 @@ struct ProcessTabTooltipContent {
 // A passive tracking view preserves tab clicks and provides a two-column tooltip.
 struct ProcessTabTooltip: NSViewRepresentable {
     let script: RunnerScript
+    let mode: String
 
     func makeNSView(context: Context) -> ProcessTabTooltipTrackingView {
         ProcessTabTooltipTrackingView(frame: .zero)
     }
 
     func updateNSView(_ view: ProcessTabTooltipTrackingView, context: Context) {
-        view.content = ProcessTabTooltipContent(script: script)
+        view.content = ProcessTabTooltipContent(script: script, mode: mode)
     }
 
     static func dismantleNSView(_ view: ProcessTabTooltipTrackingView, coordinator: ()) {
@@ -102,6 +105,10 @@ private struct ProcessTabTooltipTable: View {
 
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 5) {
+            GridRow {
+                Text("mode:").foregroundStyle(.secondary)
+                Text(verbatim: content.mode)
+            }
             GridRow {
                 Text("command:").foregroundStyle(.secondary)
                 Text(verbatim: content.command)

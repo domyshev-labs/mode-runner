@@ -1,0 +1,24 @@
+{
+  "id": "earth-observatory",
+  "title": "Earth Observatory",
+  "tagline": "A quiet dashboard for a planet in motion.",
+  "source": "USGS Earthquake Hazards",
+  "sourceURL": "https://earthquake.usgs.gov/",
+  "defaultScenario": "normal",
+  "port": 4030,
+  "mockPort": 4035,
+  "scenarios": [
+    {
+      "id": "normal",
+      "title": "Daily activity"
+    },
+    {
+      "id": "strong",
+      "title": "Strong events"
+    },
+    {
+      "id": "empty",
+      "title": "Empty feed"
+    }
+  ]
+}

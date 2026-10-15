@@ -16,15 +16,16 @@ import Testing
 @Test func processTabTooltipShowsCommandAndPortAsSeparateValues() {
     for title in ["yarn mock · :3015", "yarn mock • p:3015", "yarn mock • 3015"] {
         let content = ProcessTabTooltipContent(script: RunnerScript(id: "mock", title: title,
-                                                                    command: "yarn mock"))
+                                                                    command: "yarn mock"), mode: "Mock")
+        #expect(content.mode == "Mock")
         #expect(content.command == "yarn mock")
         #expect(content.port == "3015")
     }
     let content = ProcessTabTooltipContent(script: RunnerScript(id: "dev", title: "Development",
-        command: "yarn dev:lab", environment: ["PORT": "3010"]))
+        command: "yarn dev:lab", environment: ["PORT": "3010"]), mode: "Mock")
     #expect(content.command == "yarn dev:lab")
     #expect(content.port == "3010")
-    let noPort = ProcessTabTooltipContent(script: RunnerScript(id: "test", title: "Tests", command: "yarn test"))
+    let noPort = ProcessTabTooltipContent(script: RunnerScript(id: "test", title: "Tests", command: "yarn test"), mode: "Tests")
     #expect(noPort.port == "Not configured")
 }
 @MainActor

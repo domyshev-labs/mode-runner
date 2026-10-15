@@ -12,7 +12,7 @@ import Testing
     let first = try externalSleeper(seconds: "30", cwd: directory)
     let second = try externalSleeper(seconds: "31", cwd: directory)
     defer { cleanup(first); cleanup(second) }
-    let state = AppState(configURL: configuration)
+    let state = AppState(requireStopConfirmation: false, configURL: configuration)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let mock = tab.buttons[1]
@@ -71,7 +71,7 @@ import Testing
         id: "old", title: "Old", executable: "/bin/sleep", arguments: ["30"], cwd: directory.path
     ).launchSpec())
     defer { kill(pid, SIGKILL) }
-    let state = AppState(configURL: configuration)
+    let state = AppState(requireStopConfirmation: false, configURL: configuration)
     defer { Task { await state.shutdown() } }
     let tab = try #require(state.selectedTab)
     let mock = tab.buttons[1]
@@ -112,7 +112,7 @@ import Testing
     let configuration = try adoptionConfiguration(in: directory)
     let backend = try externalSleeper(seconds: "31", cwd: directory)
     defer { cleanup(backend) }
-    let state = AppState(configURL: configuration)
+    let state = AppState(requireStopConfirmation: false, configURL: configuration)
     defer { Task { await state.shutdown() } }
     try await waitForAdoption { !state.discoveringProcesses }
     let tab = try #require(state.selectedTab)
@@ -120,7 +120,14 @@ import Testing
     #expect(state.activeModes[tab.id] == mock.id)
     #expect(state.activity(mock, in: tab) == .partial)
     #expect(state.visibleScripts.count == 2)
+    #expect(state.visibleScripts.map(\.script.id) == ["frontend", "backend"])
     #expect(state.selectedRun?.script.id == "backend")
+    let pinnedBackend = try #require(state.selectedOutputID)
+    state.togglePin(pinnedBackend)
+    #expect(state.visibleScripts.map(\.script.id) == ["frontend", "backend"])
+    state.reload()
+    try await waitForAdoption { !state.discoveringProcesses }
+    #expect(state.visibleScripts.map(\.script.id) == ["frontend", "backend"])
     let frontend = try #require(state.visibleScripts.first { $0.script.id == "frontend" })
     #expect(state.logs[frontend.id]?.status == .notRunning)
     state.selectedOutputID = frontend.id
@@ -130,6 +137,7 @@ import Testing
     let surviving = try #require(state.runs.first { $0.script.id == "backend" })
     #expect(state.logs[surviving.id]?.status == .running(pid: backend.processIdentifier))
     #expect(state.visibleScripts.count == 2)
+    #expect(state.visibleScripts.map(\.script.id) == ["frontend", "backend"])
     await state.shutdown()
 }
 

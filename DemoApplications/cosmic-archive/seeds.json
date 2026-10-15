@@ -1,0 +1,23 @@
+[
+  {
+    "id": "moon",
+    "title": "The Moon",
+    "arguments": [
+      "moon"
+    ]
+  },
+  {
+    "id": "mars",
+    "title": "Mars",
+    "arguments": [
+      "mars"
+    ]
+  },
+  {
+    "id": "deep-space",
+    "title": "Deep space",
+    "arguments": [
+      "deep-space"
+    ]
+  }
+]

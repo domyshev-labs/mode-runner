@@ -42,9 +42,43 @@ struct MainPopoverView: View {
         .frame(width: RunnerPopover.contentSize.width, height: RunnerPopover.contentSize.height)
         .background(windowBackground)
         .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: state.selectedTabID)
+        .task {
+            while !Task.isCancelled {
+                state.refreshConfigurations()
+                do { try await Task.sleep(for: .seconds(1)) }
+                catch { break }
+            }
+        }
         .onDisappear {
             draggedProjectID = nil
             dropTargetProjectID = nil
+            state.resolveStopConfirmation(false)
+        }
+        .sheet(item: $state.pendingStopConfirmation, onDismiss: {
+            state.resolveStopConfirmation(false)
+        }) { confirmation in
+            VStack(alignment: .leading, spacing: 16) {
+                Label("Confirm process stop", systemImage: "exclamationmark.triangle")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                Text(confirmation.message).fixedSize(horizontal: false, vertical: true)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(Array(confirmation.processes.enumerated()), id: \.offset) { _, process in
+                            Text(verbatim: "• " + process).frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .frame(maxHeight: 150)
+                HStack {
+                    Spacer()
+                    Button("Cancel") { state.resolveStopConfirmation(false) }
+                        .keyboardShortcut(.cancelAction)
+                    Button("Confirm") { state.resolveStopConfirmation(true) }
+                        .keyboardShortcut(.defaultAction)
+                }
+            }
+            .padding(28)
+            .frame(width: 440)
         }
         .sheet(item: $actions.pendingAction, onDismiss: {
             actions.finishConfirmation { action, terminate in
@@ -108,6 +142,14 @@ struct MainPopoverView: View {
             if state.discoveringProcesses {
                 ProgressView().controlSize(.small).help("Finding running processes")
             }
+            ConfigurationSelector(files: state.configurationFiles, selectedURL: state.configURL,
+                                  select: { state.selectConfiguration($0) },
+                                  menuVisibilityChanged: { open in
+                                      (NSApplication.shared.delegate as? AppDelegate)?.configurationMenuChanged(open: open)
+                                  })
+                .padding(.leading, 8)
+                .frame(width: 185, height: 26)
+                .runnerGlass(radius: 8, interactive: true)
             RunnerActionsMenu(configURL: state.configURL, reload: { state.reload() }) { action in
                 (NSApplication.shared.delegate as? AppDelegate)?.request(action)
             }
@@ -302,11 +344,21 @@ struct MainPopoverView: View {
                                 Button { state.selectedOutputID = run.id } label: {
                                     HStack(spacing: 6) {
                                         Circle().fill(statusColor(state.logs[run.id]?.status)).frame(width: 6, height: 6).fixedSize()
-                                        Text(processTabTitle(run.script.title)).lineLimit(1).truncationMode(.tail)
+                                        Text(state.processTabLabel(run)).lineLimit(1).truncationMode(.tail)
                                     }
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityAddTraits(state.selectedOutputID == run.id ? [.isSelected] : [])
+                                Button { state.togglePin(run.id) } label: {
+                                    Image(systemName: state.isPinned(run.id) ? "pin.fill" : "pin")
+                                        .font(.system(size: 9))
+                                        .foregroundStyle(state.isPinned(run.id) ? Color.accentColor : Color.secondary)
+                                }
+                                .fixedSize()
+                                .buttonStyle(.plain)
+                                .help(state.isPinned(run.id) ? "Unpin process tab" : "Keep this process tab visible across projects")
+                                .accessibilityLabel((state.isPinned(run.id) ? "Unpin " : "Pin ") + state.processTabLabel(run))
+                                .accessibilityValue(state.isPinned(run.id) ? "Pinned" : "Not pinned")
                                 if state.canClose(run.id) {
                                     Button { state.close(run.id) } label: { Image(systemName: "xmark").font(.caption2) }
                                         .fixedSize()
@@ -318,7 +370,7 @@ struct MainPopoverView: View {
                             .frame(height: 22)
                             .runnerGlass(radius: 7, tint: state.selectedOutputID == run.id ? .accentColor.opacity(0.18) : nil,
                                          interactive: true)
-                            .background(ProcessTabTooltip(script: run.script)).id(run.id)
+                            .background(ProcessTabTooltip(script: run.script, mode: state.processModeTitle(run))).id(run.id)
                         }
                       }
                       .padding(2)
