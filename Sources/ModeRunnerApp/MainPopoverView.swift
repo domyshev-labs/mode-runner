@@ -501,9 +501,9 @@ private struct ProjectTabView: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 8)
             .frame(height: 24)
-            .modifier(ProjectTabSurface(selected: selected || dragging))
+            .modifier(ProjectTabSurface(selected: selected))
             .overlay(SlantedTabShape()
-                .stroke(dropTarget || selected ? Color.accentColor.opacity(0.7) : Color.primary.opacity(0.12),
+                .stroke(selected ? Color.accentColor.opacity(0.7) : Color.primary.opacity(dropTarget ? 0.4 : 0.12),
                         lineWidth: dropTarget ? 2 : 1))
             .contentShape(SlantedTabShape())
     }
@@ -518,11 +518,21 @@ private struct ProjectTabView: View {
 
 private struct ProjectTabSurface: ViewModifier {
     let selected: Bool
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if selected { content.runnerGlass(in: SlantedTabShape(), tint: .accentColor.opacity(0.12), interactive: true) }
-        else { content }
+        content.background {
+            if selected {
+                // Keep selection local to this tab instead of morphing adjacent glass surfaces.
+                if reduceTransparency || contrast == .increased {
+                    SlantedTabShape().fill(Color(nsColor: .controlBackgroundColor))
+                } else {
+                    SlantedTabShape().fill(.regularMaterial)
+                        .overlay(SlantedTabShape().fill(Color.accentColor.opacity(0.12)))
+                }
+            }
+        }
     }
 }
 
