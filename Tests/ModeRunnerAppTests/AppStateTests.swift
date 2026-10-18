@@ -295,7 +295,10 @@ private func waitUntil(_ condition: () -> Bool) async throws {
     let tab = try #require(state.selectedTab)
     let button = tab.buttons[0]
     state.toggle(button, in: tab)
-    try await waitUntil { state.runs.count == 2 && state.logs.values.allSatisfy { $0.status?.isRunning == false } }
+    try await waitUntil {
+        state.runs.count == 2 && state.busyTabs.isEmpty &&
+            state.logs.values.allSatisfy { $0.status?.isRunning == false }
+    }
     #expect(state.activity(button, in: tab) == .failed)
     await state.shutdown()
 }
