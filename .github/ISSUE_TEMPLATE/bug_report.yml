@@ -1,0 +1,28 @@
+name: Bug report
+description: Report a reproducible Mode Runner problem.
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Mode Runner version
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: macOS version and Mac architecture
+      placeholder: macOS 26.x, Apple Silicon
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps, expected result, and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Minimal YAML configuration and relevant logs
+      description: Remove secrets, tokens, private URLs, and personal paths before posting.
+      render: text

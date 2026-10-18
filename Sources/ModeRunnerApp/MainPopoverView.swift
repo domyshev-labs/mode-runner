@@ -239,15 +239,15 @@ struct MainPopoverView: View {
         if let selected = state.selectedMode(in: tab) {
             let running = state.runningMode(in: tab)
             let busy = state.busyTabs.contains(tab.id) || state.discoveringProcesses
+            let alternatives = tab.buttons.filter { $0.source == nil && $0.id != selected.id }
             HStack(spacing: 6) {
                 Menu {
-                    ForEach(tab.buttons.filter { $0.source == nil }) { mode in
+                    ForEach(alternatives) { mode in
+                        let status = modeMenuStatus(state.activity(mode, in: tab))
                         Button {
                             state.selectMode(mode, in: tab)
                         } label: {
-                            if selected.id == mode.id {
-                                Label(mode.title, systemImage: "checkmark")
-                            } else { Text(mode.title) }
+                            Label("\(mode.title) · \(status.title)", systemImage: status.icon)
                         }
                     }
                 } label: {
@@ -258,15 +258,16 @@ struct MainPopoverView: View {
                         }
                         .frame(width: 12, height: 12)
                         Text(selected.title).lineLimit(1).truncationMode(.tail)
-                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .menuStyle(.borderlessButton)
+                .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 10)
-                .frame(width: 96, height: 27)
+                .frame(minWidth: 96)
+                .frame(height: 27)
                 .runnerGlass(radius: 10, tint: running?.id == selected.id ? .green.opacity(0.12) : nil, interactive: true)
                 .help(selected.title)
-                .disabled(busy)
+                .disabled(busy || alternatives.isEmpty)
                 HStack(spacing: 8) {
                     ModeControlButton(symbol: "play.fill", tint: .green,
                                       help: "Start \(selected.title)", enabled: !busy && running?.id != selected.id,
@@ -287,6 +288,16 @@ struct MainPopoverView: View {
             }
             .font(.system(size: 10.5))
             .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+
+    private func modeMenuStatus(_ activity: ButtonActivity) -> (title: String, icon: String) {
+        switch activity {
+        case .running: ("Running", "play.circle.fill")
+        case .partial: ("Partly running", "circle.lefthalf.filled")
+        case .idle: ("Stopped", "stop.circle")
+        case .transitioning: ("In progress", "hourglass")
+        case .failed: ("Error", "exclamationmark.circle")
         }
     }
 

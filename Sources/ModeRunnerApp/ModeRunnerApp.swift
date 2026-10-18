@@ -65,6 +65,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        var welcomeError: Error?
+        let exampleSource = Bundle.main.resourceURL?.appending(path: "ExampleWorkspace")
+        if ProcessInfo.processInfo.environment["MODE_RUNNER_CONFIG"] == nil,
+           let exampleSource, FileManager.default.fileExists(atPath: exampleSource.path) {
+            do { try RunnerExampleWorkspace.install(from: exampleSource, to: ConfigurationLoader.defaultDirectory) }
+            catch { welcomeError = error }
+        }
         let state = AppState()
         self.state = state
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -81,6 +88,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         prepareMainPopover(state: state)
+        if let welcomeError {
+            let alert = NSAlert()
+            alert.messageText = "Could not prepare the example workspace"
+            alert.informativeText = welcomeError.localizedDescription + " Your existing files have been preserved. See Documentation to configure your own projects."
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            alert.runModal()
+        }
+        if ProcessInfo.processInfo.environment["MODE_RUNNER_CONFIG"] == nil,
+           let exampleSource, FileManager.default.fileExists(atPath: exampleSource.path),
+           !UserDefaults.standard.bool(forKey: "hasShownWelcome") {
+            let alert = NSAlert()
+            alert.messageText = "Welcome to Mode Runner"
+            alert.informativeText = "Find Mode Runner in your Mac's menu bar. Select a project and press Play to start its frontend and mock server together.\n\nThe starter websites need Node.js 22.12 or later, with no npm packages to install. Seeds demonstrate one-off commands. Pin a process tab to combine processes across projects.\n\nAdd your own projects with YAML files in ~/.mode-runner. The Documentation menu explains how."
+            alert.addButton(withTitle: "Open workspace")
+            alert.addButton(withTitle: "Show configuration folder")
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            let response = alert.runModal()
+            UserDefaults.standard.set(true, forKey: "hasShownWelcome")
+            if response == .alertSecondButtonReturn {
+                NSWorkspace.shared.open(ConfigurationLoader.defaultDirectory)
+            } else if let button = item.button {
+                showMainPopover(relativeTo: button)
+            }
+        }
         startupTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled, let self, let icon = statusIcon,

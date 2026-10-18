@@ -145,7 +145,7 @@ final class RunnerInformationWindows: NSObject, NSWindowDelegate {
 private struct RunnerAboutView: View {
     private var version: String {
         let info = Bundle.main.infoDictionary ?? [:]
-        let version = info["CFBundleShortVersionString"] as? String
+        let version = (info["ModeRunnerReleaseVersion"] ?? info["CFBundleShortVersionString"]) as? String
         let build = info["CFBundleVersion"] as? String
         guard let version else { return "Development build" }
         return "Version \(version)" + (build.map { " (\($0))" } ?? "")
@@ -159,8 +159,8 @@ private struct RunnerAboutView: View {
             Text(version).font(.caption).foregroundStyle(.secondary)
             Text("Run local command groups from your menu bar.").foregroundStyle(.secondary)
             Text("Created by ilia domyshev")
-            Link("GitHub · domyshev-labs/script-mode-runner",
-                 destination: URL(string: "https://github.com/domyshev-labs/script-mode-runner")!)
+            Link("GitHub · domyshev-labs/mode-runner",
+                 destination: URL(string: "https://github.com/domyshev-labs/mode-runner")!)
         }
         .textSelection(.enabled)
         .padding(28)

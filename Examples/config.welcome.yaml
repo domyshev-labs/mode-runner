@@ -1,0 +1,90 @@
+# Starter websites require Node.js 22.12+, with no npm dependencies.
+sort_order: -10
+tabs:
+  - id: application-1
+    title: "Application #1"
+    buttons:
+      - id: mock
+        title: Frontend + mock
+        on_deactivate: {sigint: true, sigkill: true, timeout: 2s}
+        scripts:
+          - id: frontend
+            title: Frontend · :3010
+            command: node server.mjs 'Application #1' dev:mock 3010 3015
+            cwd: ./TestApplications/application-1
+          - id: mock
+            title: Mock API · :3015
+            command: node server.mjs 'Application #1' mock 3015
+            cwd: ./TestApplications/application-1
+      - id: lab
+        title: Frontend only
+        on_deactivate: {sigint: true, sigkill: true, timeout: 2s}
+        scripts:
+          - id: frontend
+            title: Frontend · :3010
+            command: node server.mjs 'Application #1' dev:lab 3010
+            cwd: ./TestApplications/application-1
+      - id: seeds
+        title: Seeds
+        align: right
+        cwd: ./TestApplications
+        runner: [node, seed-demo.mjs]
+        source: {type: json_file, path: seeds.json}
+  - id: application-2
+    title: "Application #2"
+    buttons:
+      - id: mock
+        title: Frontend + mock
+        on_deactivate: {sigint: true, sigkill: true, timeout: 2s}
+        scripts:
+          - id: frontend
+            title: Frontend · :3020
+            command: node server.mjs 'Application #2' dev:mock 3020 3025
+            cwd: ./TestApplications/application-2
+          - id: mock
+            title: Mock API · :3025
+            command: node server.mjs 'Application #2' mock 3025
+            cwd: ./TestApplications/application-2
+      - id: lab
+        title: Frontend only
+        on_deactivate: {sigint: true, sigkill: true, timeout: 2s}
+        scripts:
+          - id: frontend
+            title: Frontend · :3020
+            command: node server.mjs 'Application #2' dev:lab 3020
+            cwd: ./TestApplications/application-2
+      - id: seeds
+        title: Seeds
+        align: right
+        cwd: ./TestApplications
+        runner: [node, seed-demo.mjs]
+        source: {type: json_file, path: seeds.json}
+  - id: application-3
+    title: "Application #3"
+    buttons:
+      - id: mock
+        title: Frontend + mock
+        on_deactivate: {sigint: true, sigkill: true, timeout: 2s}
+        scripts:
+          - id: frontend
+            title: Frontend · :3030
+            command: node server.mjs 'Application #3' dev:mock 3030 3035
+            cwd: ./TestApplications/application-3
+          - id: mock
+            title: Mock API · :3035
+            command: node server.mjs 'Application #3' mock 3035
+            cwd: ./TestApplications/application-3
+      - id: lab
+        title: Frontend only
+        on_deactivate: {sigint: true, sigkill: true, timeout: 2s}
+        scripts:
+          - id: frontend
+            title: Frontend · :3030
+            command: node server.mjs 'Application #3' dev:lab 3030
+            cwd: ./TestApplications/application-3
+      - id: seeds
+        title: Seeds
+        align: right
+        cwd: ./TestApplications
+        runner: [node, seed-demo.mjs]
+        source: {type: json_file, path: seeds.json}
