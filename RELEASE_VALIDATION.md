@@ -17,9 +17,20 @@ DEVELOPER_DIR without changing the system developer-directory setting.
 - Public packaging correctly refuses to proceed without a Developer ID Application identity and notarization profile.
 - Shell syntax, workflow YAML, Info.plist, and whitespace checks passed.
 
+## Follow-up findings
+
+The first GitHub matrix run passed on macOS 26 Intel and passed universal
+packaging. Apple Silicon macOS 26 and Xcode 27 exposed worker starvation caused
+by blocking `waitpid` inside a Swift task. Exit waits now run on a Dispatch queue;
+the test script also checks streaming and stop behavior with a single Swift
+cooperative worker. The updated CI run must pass before publication.
+
+A Developer ID Application identity has since been created in the local keychain.
+The notarization profile is not configured yet. The real welcome dialog was
+observed on first launch; the complete GUI process flow remains to be verified.
+
 ## Still required for publication
 
-- Create a Developer ID Application certificate; the local keychain currently has only Apple Development.
 - Configure a Keychain notarization profile or the documented release environment secrets.
 - Produce a Developer ID-signed, notarized DMG and matching source archive.
 - Complete the downloaded-DMG checks in RELEASING.md on macOS 26 and 27, and Intel runtime validation.

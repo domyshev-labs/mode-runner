@@ -7,6 +7,7 @@
 - One-off command menus and seed catalogs.
 - Pinned process tabs combine processes across projects and modes.
 - Detection and adoption of existing processes with explicit working directories.
+- Fixed process exit waits starving Swift cooperative workers on smaller Macs.
 - Optional starter websites prepared on first launch; no npm packages required.
 - Universal app and DMG packaging, Developer ID signing, and notarization tooling.
 - GPL-3.0-only licensing and third-party notices.
