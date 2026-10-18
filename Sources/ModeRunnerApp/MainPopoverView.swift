@@ -258,12 +258,13 @@ struct MainPopoverView: View {
                         }
                         .frame(width: 12, height: 12)
                         Text(selected.title).lineLimit(1).truncationMode(.tail)
-                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .menuStyle(.borderlessButton)
+                .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 10)
-                .frame(width: 96, height: 27)
+                .frame(minWidth: 96)
+                .frame(height: 27)
                 .runnerGlass(radius: 10, tint: running?.id == selected.id ? .green.opacity(0.12) : nil, interactive: true)
                 .help(selected.title)
                 .disabled(busy)
