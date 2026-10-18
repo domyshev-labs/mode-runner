@@ -243,8 +243,11 @@ struct MainPopoverView: View {
             HStack(spacing: 6) {
                 Menu {
                     ForEach(alternatives) { mode in
-                        Button(mode.title) {
+                        let status = modeMenuStatus(state.activity(mode, in: tab))
+                        Button {
                             state.selectMode(mode, in: tab)
+                        } label: {
+                            Label("\(mode.title) · \(status.title)", systemImage: status.icon)
                         }
                     }
                 } label: {
@@ -285,6 +288,16 @@ struct MainPopoverView: View {
             }
             .font(.system(size: 10.5))
             .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+
+    private func modeMenuStatus(_ activity: ButtonActivity) -> (title: String, icon: String) {
+        switch activity {
+        case .running: ("Running", "play.circle.fill")
+        case .partial: ("Partly running", "circle.lefthalf.filled")
+        case .idle: ("Stopped", "stop.circle")
+        case .transitioning: ("In progress", "hourglass")
+        case .failed: ("Error", "exclamationmark.circle")
         }
     }
 
