@@ -239,15 +239,12 @@ struct MainPopoverView: View {
         if let selected = state.selectedMode(in: tab) {
             let running = state.runningMode(in: tab)
             let busy = state.busyTabs.contains(tab.id) || state.discoveringProcesses
+            let alternatives = tab.buttons.filter { $0.source == nil && $0.id != selected.id }
             HStack(spacing: 6) {
                 Menu {
-                    ForEach(tab.buttons.filter { $0.source == nil }) { mode in
-                        Button {
+                    ForEach(alternatives) { mode in
+                        Button(mode.title) {
                             state.selectMode(mode, in: tab)
-                        } label: {
-                            if selected.id == mode.id {
-                                Label(mode.title, systemImage: "checkmark")
-                            } else { Text(mode.title) }
                         }
                     }
                 } label: {
@@ -267,7 +264,7 @@ struct MainPopoverView: View {
                 .frame(height: 27)
                 .runnerGlass(radius: 10, tint: running?.id == selected.id ? .green.opacity(0.12) : nil, interactive: true)
                 .help(selected.title)
-                .disabled(busy)
+                .disabled(busy || alternatives.isEmpty)
                 HStack(spacing: 8) {
                     ModeControlButton(symbol: "play.fill", tint: .green,
                                       help: "Start \(selected.title)", enabled: !busy && running?.id != selected.id,
