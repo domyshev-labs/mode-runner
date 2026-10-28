@@ -370,7 +370,7 @@ struct MainPopoverView: View {
                             .frame(height: 22)
                             .runnerGlass(radius: 7, tint: state.selectedOutputID == run.id ? .accentColor.opacity(0.18) : nil,
                                          interactive: true)
-                            .background(ProcessTabTooltip(script: run.script, mode: state.processModeTitle(run))).id(run.id)
+                            .background(ProcessTabTooltip(state: state, run: run)).id(run.id)
                         }
                       }
                       .padding(2)
@@ -388,29 +388,7 @@ struct MainPopoverView: View {
                     Text(log.status?.displayText ?? "Not running").font(.caption).foregroundStyle(.secondary)
                     Text("· \(log.buffer.count) bytes").font(.caption).foregroundStyle(.tertiary)
                     Spacer()
-                    if state.startingRuns.contains(id) ||
-                        (log.status?.isRunning == false && !state.restartingRuns.contains(id) && !state.stoppingRuns.contains(id)) {
-                        ProcessActionButton(title: "Start", loading: state.startingRuns.contains(id)) {
-                            state.startSelected()
-                        }
-                        .help("Start the selected command")
-                        .disabled(!state.canStartSelected)
-                    } else if log.status?.isRunning == true || state.restartingRuns.contains(id) || state.stoppingRuns.contains(id) {
-                        ProcessActionButton(title: "Reload", loading: state.restartingRuns.contains(id)) {
-                            state.reloadSelected()
-                        }
-                            .help("Restart the selected command")
-                            .disabled(log.status == .starting || log.status == .stopping ||
-                                      state.restartingRuns.contains(id) || state.stoppingRuns.contains(id) ||
-                                      state.selectedRun.map { state.busyTabs.contains($0.tabID) } == true)
-                        ProcessActionButton(title: "Stop", loading: state.stoppingRuns.contains(id)) {
-                            state.stopSelected()
-                        }
-                        .disabled(log.status == .stopping || state.restartingRuns.contains(id) ||
-                                  state.stoppingRuns.contains(id) ||
-                                  state.selectedRun.map { state.busyTabs.contains($0.tabID) } == true)
-                    }
-                    Button("Clear") { state.clearSelectedLog() }
+                    ProcessRunActions(state: state, runID: id)
                 }
                 .controlSize(.small)
                 .buttonStyle(LogActionButtonStyle())
