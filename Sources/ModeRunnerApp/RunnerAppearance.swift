@@ -79,10 +79,19 @@ struct LogActionButtonStyle: ButtonStyle {
         var body: some View {
             label
                 .padding(.horizontal, 6).padding(.vertical, 3)
-                .background(Color.primary.opacity(enabled && (hovered || pressed) ? 0.12 : 0),
+                .background(Color.primary.opacity(enabled && pressed ? 0.22 :
+                                                  enabled && hovered ? 0.15 : 0.07),
                             in: RoundedRectangle(cornerRadius: 5))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 5)
+                        .strokeBorder(enabled && hovered ? Color.accentColor.opacity(0.65) :
+                                      Color.primary.opacity(0.1), lineWidth: 1)
+                }
                 .contentShape(RoundedRectangle(cornerRadius: 5))
+                .opacity(enabled ? 1 : 0.45)
                 .onHover { hovered = $0 }
+                .animation(.easeOut(duration: 0.12), value: hovered)
+                .animation(.easeOut(duration: 0.08), value: pressed)
         }
     }
 }
@@ -158,11 +167,15 @@ struct DotActivityIndicator: View {
 struct ProcessActionButton: View {
     let title: String
     let loading: Bool
+    var systemImage: String? = nil
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            Text(title)
+            HStack(spacing: 4) {
+                if let systemImage { Image(systemName: systemImage) }
+                Text(title)
+            }
                 .opacity(loading ? 0 : 1)
                 .overlay {
                     if loading { DotActivityIndicator().frame(width: 14, height: 14) }

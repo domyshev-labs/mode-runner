@@ -388,7 +388,8 @@ struct MainPopoverView: View {
                     Text(log.status?.displayText ?? "Not running").font(.caption).foregroundStyle(.secondary)
                     Text("· \(log.buffer.count) bytes").font(.caption).foregroundStyle(.tertiary)
                     Spacer()
-                    ProcessRunActions(state: state, runID: id)
+                    ProcessRunActions(state: state, runID: id, showIcons: true)
+                        .font(.system(size: 11))
                 }
                 .controlSize(.small)
                 .buttonStyle(LogActionButtonStyle())

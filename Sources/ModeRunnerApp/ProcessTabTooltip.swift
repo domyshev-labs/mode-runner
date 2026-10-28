@@ -38,6 +38,7 @@ final class ProcessTabTooltipTrackingView: NSView {
         didSet {
             if let content, let host = popover?.contentViewController as? NSHostingController<ProcessTabTooltipTable> {
                 host.rootView = content
+                sizeProcessTabPopover(popover)
             }
         }
     }
@@ -93,10 +94,7 @@ final class ProcessTabTooltipTrackingView: NSView {
     private func showTooltip() {
         guard let content, let window, window.isVisible, NSApp.isActive,
               visibleRect.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil)) else { return }
-        let popover = NSPopover()
-        popover.behavior = .applicationDefined
-        popover.animates = false
-        popover.contentViewController = NSHostingController(rootView: content)
+        let popover = makeProcessTabPopover(content: content)
         self.popover = popover
         // AppKit anchors the arrow to the actual tab, including inside a scrolled row.
         popover.show(relativeTo: bounds, of: self, preferredEdge: .minY)
@@ -125,13 +123,40 @@ final class ProcessTabTooltipTrackingView: NSView {
     }
 }
 
-private struct ProcessTabTooltipTable: View {
+@MainActor
+func makeProcessTabPopover(content: ProcessTabTooltipTable) -> NSPopover {
+    let popover = NSPopover()
+    popover.behavior = .applicationDefined
+    popover.animates = false
+    let host = NSHostingController(rootView: content)
+    host.sizingOptions = []
+    popover.contentViewController = host
+    sizeProcessTabPopover(popover)
+    return popover
+}
+
+@MainActor
+private func sizeProcessTabPopover(_ popover: NSPopover?) {
+    guard let popover,
+          let host = popover.contentViewController as? NSHostingController<ProcessTabTooltipTable> else { return }
+    let size = host.sizeThatFits(in: NSSize(width: 320, height: CGFloat.greatestFiniteMagnitude))
+    host.view.setFrameSize(size)
+    popover.contentSize = size
+}
+
+struct ProcessTabTooltipTable: View {
     @ObservedObject var state: AppState
     let run: ScriptRun
 
     var body: some View {
         let content = ProcessTabTooltipContent(script: run.script, mode: state.processModeTitle(run))
         VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                ProcessRunActions(state: state, runID: run.id, showIcons: true)
+            }
+            .controlSize(.small)
+            .buttonStyle(LogActionButtonStyle())
+            Divider()
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 5) {
                 GridRow {
                     Text("mode:").foregroundStyle(.secondary)
@@ -147,16 +172,10 @@ private struct ProcessTabTooltipTable: View {
                     Text(verbatim: content.port)
                 }
             }
-            Divider()
-            HStack(spacing: 8) {
-                ProcessRunActions(state: state, runID: run.id)
-            }
-            .controlSize(.small)
-            .buttonStyle(LogActionButtonStyle())
         }
         .font(.system(size: 11))
         .padding(10)
-        .frame(maxWidth: 560, alignment: .leading)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: 320, alignment: .leading)
+        .fixedSize(horizontal: true, vertical: true)
     }
 }

@@ -4,6 +4,7 @@ import SwiftUI
 struct ProcessRunActions: View {
     @ObservedObject var state: AppState
     let runID: String
+    var showIcons = false
 
     var body: some View {
         if let log = state.logs[runID] {
@@ -13,23 +14,32 @@ struct ProcessRunActions: View {
             let stopping = state.stoppingRuns.contains(runID)
             let starting = state.startingRuns.contains(runID)
             if starting || (log.status?.isRunning == false && !restarting && !stopping) {
-                ProcessActionButton(title: "Start", loading: starting) {
+                ProcessActionButton(title: "Start", loading: starting,
+                                    systemImage: showIcons ? "play.fill" : nil) {
                     state.startRun(runID)
                 }
                 .help("Start this command")
                 .disabled(!state.canStartRun(runID))
             } else if log.status?.isRunning == true || restarting || stopping {
-                ProcessActionButton(title: "Reload", loading: restarting) {
+                ProcessActionButton(title: "Reload", loading: restarting,
+                                    systemImage: showIcons ? "arrow.clockwise" : nil) {
                     state.reloadRun(runID)
                 }
                 .help("Restart this command")
                 .disabled(log.status == .starting || log.status == .stopping || restarting || stopping || busy)
-                ProcessActionButton(title: "Stop", loading: stopping) {
+                ProcessActionButton(title: "Stop", loading: stopping,
+                                    systemImage: showIcons ? "stop.fill" : nil) {
                     state.stopRun(runID)
                 }
                 .disabled(log.status == .stopping || restarting || stopping || busy)
             }
-            Button("Clear") { state.clearLog(runID) }
+            Button { state.clearLog(runID) } label: {
+                if showIcons {
+                    Label("Clear", systemImage: "trash")
+                } else {
+                    Text("Clear")
+                }
+            }
         }
     }
 }
