@@ -12,4 +12,4 @@ The optional starter websites require Node.js 22.12 or later, with no npm
 package installation. Your own projects need their usual tools and dependencies.
 
 Documentation and support:
-https://github.com/domyshev-labs/mode-runner
+https://github.com/domyshev/mode-runner

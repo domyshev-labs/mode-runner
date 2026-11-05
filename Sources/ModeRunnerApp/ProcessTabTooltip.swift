@@ -14,17 +14,17 @@ struct ProcessTabTooltipContent {
     }
 }
 
-// A passive tracking view preserves tab clicks and provides a two-column tooltip.
+// Tracking stays passive so selecting and pinning the underlying tab still work.
 struct ProcessTabTooltip: NSViewRepresentable {
-    let script: RunnerScript
-    let mode: String
+    @ObservedObject var state: AppState
+    let run: ScriptRun
 
     func makeNSView(context: Context) -> ProcessTabTooltipTrackingView {
         ProcessTabTooltipTrackingView(frame: .zero)
     }
 
     func updateNSView(_ view: ProcessTabTooltipTrackingView, context: Context) {
-        view.content = ProcessTabTooltipContent(script: script, mode: mode)
+        view.content = ProcessTabTooltipTable(state: state, run: run)
     }
 
     static func dismantleNSView(_ view: ProcessTabTooltipTrackingView, coordinator: ()) {
@@ -34,10 +34,19 @@ struct ProcessTabTooltip: NSViewRepresentable {
 
 @MainActor
 final class ProcessTabTooltipTrackingView: NSView {
-    var content: ProcessTabTooltipContent?
+    fileprivate var content: ProcessTabTooltipTable? {
+        didSet {
+            if let content, let host = popover?.contentViewController as? NSHostingController<ProcessTabTooltipTable> {
+                host.rootView = content
+                sizeProcessTabPopover(popover)
+            }
+        }
+    }
     private var hoverArea: NSTrackingArea?
-    private var timer: Timer?
-    private var panel: NSPanel?
+    private var showTimer: Timer?
+    private var hoverTimer: Timer?
+    private var popover: NSPopover?
+    private var lastHover = Date()
 
     override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
@@ -45,21 +54,28 @@ final class ProcessTabTooltipTrackingView: NSView {
         super.updateTrackingAreas()
         if let hoverArea { removeTrackingArea(hoverArea) }
         let area = NSTrackingArea(rect: .zero,
-            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect], owner: self)
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect], owner: self)
         addTrackingArea(area)
         hoverArea = area
     }
 
     override func mouseEntered(with event: NSEvent) {
-        hideTooltip()
+        showTimer?.invalidate()
+        lastHover = Date()
+        guard popover == nil else { return }
         let timer = Timer(timeInterval: 0.5, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.showTooltip() }
         }
-        self.timer = timer
+        showTimer = timer
         RunLoop.main.add(timer, forMode: .common)
     }
 
-    override func mouseExited(with event: NSEvent) { hideTooltip() }
+    override func mouseExited(with event: NSEvent) {
+        showTimer?.invalidate()
+        showTimer = nil
+        // The hover timer gives the pointer time to cross the gap to the controls.
+        lastHover = Date()
+    }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
         hideTooltip()
@@ -67,61 +83,99 @@ final class ProcessTabTooltipTrackingView: NSView {
     }
 
     func hideTooltip() {
-        timer?.invalidate()
-        timer = nil
-        panel?.orderOut(nil)
-        panel = nil
+        showTimer?.invalidate()
+        showTimer = nil
+        hoverTimer?.invalidate()
+        hoverTimer = nil
+        popover?.close()
+        popover = nil
     }
 
     private func showTooltip() {
-        guard let content, let window, window.isVisible,
-              bounds.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil)) else { return }
-        let host = NSHostingView(rootView: ProcessTabTooltipTable(content: content))
-        let size = host.fittingSize
-        let anchor = window.convertToScreen(convert(bounds, to: nil))
-        guard let screen = window.screen else { return }
-        let visible = screen.visibleFrame.insetBy(dx: 8, dy: 8)
-        let origin = NSPoint(
-            x: max(visible.minX, min(anchor.minX, visible.maxX - size.width)),
-            y: max(visible.minY, min(anchor.minY - size.height - 6, visible.maxY - size.height))
-        )
-        let panel = NSPanel(contentRect: NSRect(origin: origin, size: size),
-                            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.appearance = window.effectiveAppearance
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = true
-        panel.ignoresMouseEvents = true
-        panel.hidesOnDeactivate = true
-        panel.level = NSWindow.Level(rawValue: window.level.rawValue + 1)
-        panel.contentView = host
-        self.panel = panel
-        panel.orderFrontRegardless()
+        guard let content, let window, window.isVisible, NSApp.isActive,
+              visibleRect.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil)) else { return }
+        let popover = makeProcessTabPopover(content: content)
+        self.popover = popover
+        // AppKit anchors the arrow to the actual tab, including inside a scrolled row.
+        popover.show(relativeTo: bounds, of: self, preferredEdge: .minY)
+        lastHover = Date()
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.checkHover() }
+        }
+        hoverTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
+    }
+
+    private func checkHover() {
+        guard let window, window.isVisible, NSApp.isActive,
+              let popover, popover.isShown else {
+            hideTooltip()
+            return
+        }
+        let pointer = NSEvent.mouseLocation
+        let anchor = window.convertToScreen(convert(visibleRect, to: nil))
+        let overPopover = popover.contentViewController?.view.window?.frame.contains(pointer) == true
+        if anchor.contains(pointer) || overPopover {
+            lastHover = Date()
+        } else if Date().timeIntervalSince(lastHover) > 0.3 {
+            hideTooltip()
+        }
     }
 }
 
-private struct ProcessTabTooltipTable: View {
-    let content: ProcessTabTooltipContent
+@MainActor
+func makeProcessTabPopover(content: ProcessTabTooltipTable) -> NSPopover {
+    let popover = NSPopover()
+    popover.behavior = .applicationDefined
+    popover.animates = false
+    let host = NSHostingController(rootView: content)
+    host.sizingOptions = []
+    popover.contentViewController = host
+    sizeProcessTabPopover(popover)
+    return popover
+}
+
+@MainActor
+private func sizeProcessTabPopover(_ popover: NSPopover?) {
+    guard let popover,
+          let host = popover.contentViewController as? NSHostingController<ProcessTabTooltipTable> else { return }
+    let size = host.sizeThatFits(in: NSSize(width: 320, height: CGFloat.greatestFiniteMagnitude))
+    host.view.setFrameSize(size)
+    popover.contentSize = size
+}
+
+struct ProcessTabTooltipTable: View {
+    @ObservedObject var state: AppState
+    let run: ScriptRun
 
     var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 5) {
-            GridRow {
-                Text("mode:").foregroundStyle(.secondary)
-                Text(verbatim: content.mode)
+        let content = ProcessTabTooltipContent(script: run.script, mode: state.processModeTitle(run))
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                ProcessRunActions(state: state, runID: run.id, showIcons: true)
             }
-            GridRow {
-                Text("command:").foregroundStyle(.secondary)
-                Text(verbatim: content.command)
-            }
-            GridRow {
-                Text("port:").foregroundStyle(.secondary)
-                Text(verbatim: content.port)
+            .controlSize(.small)
+            .buttonStyle(LogActionButtonStyle())
+            Divider()
+            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 5) {
+                GridRow {
+                    Text("mode:").foregroundStyle(.secondary)
+                    Text(verbatim: content.mode)
+                }
+                GridRow {
+                    Text("command:").foregroundStyle(.secondary)
+                    Text(verbatim: content.command)
+                        .textSelection(.enabled)
+                }
+                GridRow {
+                    Text("port:").foregroundStyle(.secondary)
+                    Text(verbatim: content.port)
+                }
             }
         }
         .font(.system(size: 11))
         .padding(10)
-        .frame(maxWidth: 560, alignment: .leading)
-        .fixedSize(horizontal: false, vertical: true)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 7))
+        .frame(width: 320, alignment: .leading)
+        .fixedSize(horizontal: true, vertical: true)
     }
 }

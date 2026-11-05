@@ -10,10 +10,10 @@ cask "mode-runner" do
   version "${VERSION}"
   sha256 "${CHECKSUM}"
 
-  url "https://github.com/domyshev-labs/mode-runner/releases/download/v#{version}/ModeRunner-#{version}.dmg"
+  url "https://github.com/domyshev/mode-runner/releases/download/v#{version}/ModeRunner-#{version}.dmg"
   name "Mode Runner"
   desc "Manage local development processes from the macOS menu bar"
-  homepage "https://github.com/domyshev-labs/mode-runner"
+  homepage "https://github.com/domyshev/mode-runner"
 
   depends_on macos: ">= :sonoma"
   app "Mode Runner.app"

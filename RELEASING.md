@@ -1,8 +1,15 @@
 # Release Mode Runner
 
-The project stays at https://github.com/domyshev-labs/mode-runner and is authored
+The project stays at https://github.com/domyshev/mode-runner and is authored
 by ilia domyshev. Releases are distributed directly, outside the Mac App Store.
 The code is GPL-3.0-only; distribute matching source with every binary release.
+
+## Owner license confirmation
+
+This preparation proposes GPL-3.0-only licensing. The repository owner must
+explicitly confirm that choice before this PR is merged or a release is published.
+The included LICENSE file does not record that confirmation. Keep this item open
+until the owner confirms the license in the PR review.
 
 ## Current status
 
@@ -105,9 +112,9 @@ After publishing a signed DMG, generate a cask with its actual checksum:
 ./Scripts/generate-cask.sh 0.1.0-beta.1 dist/ModeRunner-0.1.0-beta.1.dmg
 ```
 
-Place the result at `Casks/mode-runner.rb` in a future `domyshev-labs/homebrew-tap`
+Place the result at `Casks/mode-runner.rb` in a future `domyshev/homebrew-tap`
 repository, then test installation from that tap. Only advertise
-`brew install --cask domyshev-labs/tap/mode-runner` once the tap and download exist.
+`brew install --cask domyshev/tap/mode-runner` once the tap and download exist.
 A main Homebrew Cask submission can follow later.
 
 ## Promotion

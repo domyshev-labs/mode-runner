@@ -29,8 +29,29 @@ A Developer ID Application identity has since been created in the local keychain
 The notarization profile is not configured yet. The real welcome dialog was
 observed on first launch; the complete GUI process flow remains to be verified.
 
+## Validation after syncing with main (2026-11-05)
+
+The preparation branch includes `origin/main` at `08ec3ee`, including PRs #8
+and #9. Repository URLs now use `https://github.com/domyshev/mode-runner`
+throughout the documentation, About window, bundled guide, DMG README, and
+Homebrew cask generator. No former owner references remain in tracked text files.
+
+Environment: macOS 26.7.2, Apple Silicon, full Xcode selected through DEVELOPER_DIR.
+
+- `Scripts/test.sh` passed 28 core tests, 69 app tests, the additional strict cooperative-worker streaming test, and all 4 Node.js demo tests.
+- Shell syntax, workflow YAML parsing, Info.plist validation, and whitespace checks passed.
+- The cask generator produced the current repository's versioned download URL, homepage, and expected SHA-256; the generated Ruby parsed successfully.
+- `MODE_RUNNER_PREVIEW=1 Scripts/package-release.sh /tmp/mode-runner-pr7-preview` built a universal arm64/x86_64 preview DMG.
+- The preview passed image and SHA-256 verification. A read-only mount confirmed the new repository URL in Read Me, the Applications shortcut, both executable architectures, and the app's deep/strict ad-hoc signature.
+
+This preview does not establish Developer ID signing, notarization, Gatekeeper
+acceptance, or Intel execution. The GitHub compatibility matrix must pass for the
+updated revision. Owner confirmation of the proposed GPL-3.0-only license remains
+outstanding.
+
 ## Still required for publication
 
+- Obtain the repository owner's explicit confirmation of GPL-3.0-only licensing before merging this preparation or publishing a release.
 - Configure a Keychain notarization profile or the documented release environment secrets.
 - Produce a Developer ID-signed, notarized DMG and matching source archive.
 - Complete the downloaded-DMG checks in RELEASING.md on macOS 26 and 27, and Intel runtime validation.
