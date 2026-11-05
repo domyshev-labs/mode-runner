@@ -27,11 +27,8 @@ fi
 SUFFIX=""
 [[ "${PREVIEW}" != 1 ]] || SUFFIX="-unsigned-preview"
 NAME="ModeRunner-${VERSION}${SUFFIX}"
-mkdir "${STAGING_DIRECTORY}/image"
-ditto "${APP_BUNDLE}" "${STAGING_DIRECTORY}/image/Mode Runner.app"
-ln -s /Applications "${STAGING_DIRECTORY}/image/Applications"
-cp Packaging/DMG-README.txt "${STAGING_DIRECTORY}/image/Read Me.txt"
-hdiutil create -volname 'Mode Runner' -srcfolder "${STAGING_DIRECTORY}/image" -ov -format UDZO "${OUTPUT_DIRECTORY}/${NAME}.dmg"
+"${PROJECT_DIRECTORY}/Scripts/create-dmg.sh" "${APP_BUNDLE}" "${OUTPUT_DIRECTORY}/${NAME}.dmg"
+"${PROJECT_DIRECTORY}/Scripts/verify-dmg.sh" "${OUTPUT_DIRECTORY}/${NAME}.dmg"
 if [[ "${PREVIEW}" != 1 ]]; then
     codesign --sign "${MODE_RUNNER_SIGNING_IDENTITY}" --timestamp "${OUTPUT_DIRECTORY}/${NAME}.dmg"
     xcrun notarytool submit "${OUTPUT_DIRECTORY}/${NAME}.dmg" --keychain-profile "${MODE_RUNNER_NOTARY_PROFILE}" --wait
