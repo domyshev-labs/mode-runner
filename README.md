@@ -14,8 +14,8 @@ servers, workers, and command-line tools.
 [Installation](INSTALL.md) · [User guide](Sources/ModeRunnerApp/Resources/Usage.md) ·
 [Report an issue](https://github.com/domyshev/mode-runner/issues)
 
-The first signed beta is being prepared. Downloadable DMGs will appear under
-Releases once signing, notarization, and release validation are complete.
+The first signed and notarized beta is available as a prerelease on GitHub:
+[Mode Runner 0.1.0-beta.1](https://github.com/domyshev/mode-runner/releases/tag/v0.1.0-beta.1).
 
 ## A workspace for the way you develop
 
@@ -35,8 +35,8 @@ The downloadable build targets both Apple Silicon and Intel.
 
 ## Install and try it
 
-When a signed beta is available, download its DMG from Releases, drag **Mode Runner**
-into **Applications**, and open it. Look for its terminal icon in the menu bar;
+Download `ModeRunner-0.1.0-beta.1.dmg` from the [beta release](https://github.com/domyshev/mode-runner/releases/tag/v0.1.0-beta.1),
+open it, drag **Mode Runner** into **Applications**, and open it. Look for its terminal icon in the menu bar;
 there is no Dock window. Xcode is needed only to build from source.
 
 On first launch, the downloaded app prepares an optional starter workspace under
