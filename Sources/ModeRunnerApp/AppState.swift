@@ -533,7 +533,12 @@ final class AppState: ObservableObject {
     }
 
     func stopSelected() {
-        guard let run = selectedRun, logs[run.id]?.status?.isRunning == true,
+        guard let id = selectedOutputID else { return }
+        stopRun(id)
+    }
+
+    func stopRun(_ id: String) {
+        guard let run = runs.first(where: { $0.id == id }), logs[run.id]?.status?.isRunning == true,
               !busyTabs.contains(run.tabID), !restartingRuns.contains(run.id),
               !stoppingRuns.contains(run.id), logs[run.id]?.status != .stopping else { return }
         stoppingRuns.insert(run.id)
@@ -552,7 +557,11 @@ final class AppState: ObservableObject {
     }
 
     var canStartSelected: Bool {
-        guard let run = selectedRun, logs[run.id]?.status?.isRunning == false,
+        selectedOutputID.map(canStartRun) ?? false
+    }
+
+    func canStartRun(_ id: String) -> Bool {
+        guard let run = runs.first(where: { $0.id == id }), logs[run.id]?.status?.isRunning == false,
               !busyTabs.contains(run.tabID), !startingRuns.contains(run.id),
               !restartingRuns.contains(run.id), !stoppingRuns.contains(run.id) else { return false }
         return canStart(run)
@@ -570,7 +579,12 @@ final class AppState: ObservableObject {
     }
 
     func startSelected() {
-        guard canStartSelected, let run = selectedRun else { return }
+        guard let id = selectedOutputID else { return }
+        startRun(id)
+    }
+
+    func startRun(_ id: String) {
+        guard canStartRun(id), let run = runs.first(where: { $0.id == id }) else { return }
         if let warning = pinnedPortConflict([run.script], excluding: [run.id]) {
             errorMessage = warning
             return
@@ -631,7 +645,12 @@ final class AppState: ObservableObject {
     }
 
     func reloadSelected() {
-        guard let run = selectedRun, case .running = logs[run.id]?.status,
+        guard let id = selectedOutputID else { return }
+        reloadRun(id)
+    }
+
+    func reloadRun(_ id: String) {
+        guard let run = runs.first(where: { $0.id == id }), case .running = logs[run.id]?.status,
               !busyTabs.contains(run.tabID), !restartingRuns.contains(run.id),
               !stoppingRuns.contains(run.id) else { return }
         restartingRuns.insert(run.id)
@@ -677,6 +696,10 @@ final class AppState: ObservableObject {
 
     func clearSelectedLog() {
         guard let id = selectedOutputID else { return }
+        clearLog(id)
+    }
+
+    func clearLog(_ id: String) {
         logs[id]?.buffer.removeAll()
     }
 
