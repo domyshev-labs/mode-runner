@@ -1,96 +1,129 @@
 # Mode Runner
 
-**Your frontend projects and mock servers, together in your Mac's menu bar.**
+**Your local development processes, together in your Mac’s menu bar.**
 
-Working on several frontend projects shouldn't mean juggling terminals,
-remembering ports, and wondering what happens to your dev servers when you close
-your IDE.
+Mode Runner is a native macOS app for developers working across several local
+projects. Start a frontend and its mock server together, run a seeder when you
+need it, and restart individual processes without juggling terminals. Pin process
+tabs to keep useful combinations from different projects running side by side.
 
-Sound familiar?
+Built primarily for frontend developers, and useful for anyone managing local
+servers, workers, and command-line tools.
 
-- Should you run your apps in a terminal or through your IDE?
-- A separate terminal window, or another tab inside the IDE?
-- Will closing the IDE also stop your dev servers?
-- Which project is running on which localhost port?
-- Does every app need a mock server—and another terminal to keep track of?
+[Releases](https://github.com/domyshev-labs/mode-runner/releases) ·
+[Installation](INSTALL.md) · [User guide](Sources/ModeRunnerApp/Resources/Usage.md) ·
+[Report an issue](https://github.com/domyshev-labs/mode-runner/issues)
 
-We built Mode Runner because we were tired of keeping all of this in our heads.
+The first signed beta is being prepared. Downloadable DMGs will appear under
+Releases once signing, notarization, and release validation are complete.
 
-Give each project a tab, configure its development modes, and launch the app and
-its mock server together. See what's running, read each command's logs, and open
-local URLs from one place.
+## A workspace for the way you develop
 
-## Less juggling. More building.
+- **Several projects at once.** Each project has its own tab and development modes.
+- **Several processes per project.** Launch a frontend, mock API, or worker as one group, with separate logs.
+- **One-off commands.** Run seeders and package scripts alongside your servers.
+- **Quick restarts.** Restart a whole mode or just one process.
+- **Mix projects.** Pin process tabs to keep them visible across projects and running across mode changes. Port conflicts are checked before launching.
+- **Local links and logs.** Open detected URLs directly and see what each command is doing.
+- **Your existing tools.** Use npm, Yarn, pnpm, Python, or other commands through a YAML configuration.
+- **Independent of your editor.** Choose whether processes keep running when you quit Mode Runner.
 
-- **Keep several projects running.** Switch project tabs without stopping their
-  processes.
-- **Start your app and mocks together.** A mode can launch multiple commands, each
-  with its own log tab.
-- **Switch development modes.** Starting another mode stops the previous mode
-  within that project.
-- **Open your local app without remembering its port.** Click URLs detected in
-  logs or configured localhost shortcuts.
-- **Keep your workflow independent of your IDE.** Manage processes from the menu
-  bar, and choose whether they keep running when you quit Mode Runner.
-- **Use your existing commands.** Run npm, Yarn, pnpm, or other tools with a YAML
-  configuration.
+macOS only. The deployment target is macOS 14 or later, with native Liquid Glass
+on macOS 26 and later. macOS 26 and 27 are release validation targets; see
+[release preparation](RELEASING.md) for the compatibility checks still required.
+The downloadable build targets both Apple Silicon and Intel.
 
-A native macOS app. Requires macOS 14 or later.
+## Install and try it
 
-## Installation and documentation
+When a signed beta is available, download its DMG from Releases, drag **Mode Runner**
+into **Applications**, and open it. Look for its terminal icon in the menu bar;
+there is no Dock window. Xcode is needed only to build from source.
 
-For setup and installation on another Mac, see [INSTALL.md](INSTALL.md).
+On first launch, the downloaded app prepares an optional starter workspace under
+`~/.mode-runner/`. Select **config.welcome.yaml**, choose a project, and press Play
+to launch its frontend and mock API. These starter websites need **Node.js 22.12+**,
+with no npm packages to install. The Seeds menu demonstrates one-off commands;
+these starter seed commands print arguments rather than changing data.
 
-For daily use, see the [user guide](Sources/ModeRunnerApp/Resources/Usage.md), also
-available offline through **Documentation** in the app's top-right menu. This
-portable Markdown file is the single source for the bundled guide and can be
-published on the project website later.
+For a richer demonstration, the included **config.example.yaml** offers three
+React science apps with persisted seed datasets. See [science demos](DemoApplications/README.md)
+for their separate dependency installation. Projects and dependencies are never
+started or installed automatically.
 
-## Quick start
-
-1. Use the example provided by the installer, or create `~/.mode-runner/config.yaml` using `Examples/config.yaml` as a template.
-2. Build and run the app with `swift run ModeRunner`.
-3. Open the terminal icon in the menu bar.
-
-Click the icon again or click outside the app to dismiss the workspace. Running commands continue while the window is hidden.
-
-The installer creates `~/.mode-runner/config.example.yaml` on a fresh installation. Select a file from the header dropdown; files follow their optional `sort_order`, then their filenames. Each item shows its full path on hover and has a copy-path button. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.
-
-A command can use an `executable`/`arguments` pair or a `command` string executed through a shell. Yarn, npm, Python, local binaries, and other programs are handled the same way.
-
-Build with Xcode 26 or newer (Xcode 27 is recommended for macOS 27). Navigation and controls use native Liquid Glass on macOS 26 and later, including the system's current rendering on macOS 27. macOS 14–15 use standard materials. Light/dark appearance, Reduce Transparency, and Increase Contrast are respected. Logs keep a solid background for readability.
-
-Run `./Scripts/install.sh` to build a locally signed `.app` with a custom Finder and Spotlight icon. The colored menu bar icon matches the app icon and gently grows and shrinks three times on startup. Reduce Motion disables the animation.
-
-The menu bar image is generated from the same vector artwork as the app icon. After changing `Scripts/generate-icon.swift`, refresh the checked-in resource before building:
+To build locally with full Xcode installed:
 
 ```bash
-swift Scripts/generate-icon.swift .build/menu-icon.iconset
-cp .build/menu-icon.iconset/icon_128x128.png Sources/ModeRunnerApp/Resources/MenuBarIcon.png
+git clone https://github.com/domyshev-labs/mode-runner.git
+cd mode-runner
+./Scripts/install.sh
+open "$HOME/Applications/Mode Runner.app"
 ```
 
-## Science demos and configuration selection
+See [INSTALL.md](INSTALL.md) for setup, updates, and troubleshooting.
 
-Three independent React + Vite demos cover space imagery, mathematical reading, and earthquake observations. Launch them through Yarn in Mock or Live API mode, and use Mode Runner's seed menus to change local datasets. See [DemoApplications/README.md](DemoApplications/README.md) for installation and the demonstration flow; [Examples/config.example.yaml](Examples/config.example.yaml) provides the configuration.
+## Add your projects
 
-Configurations are independent files in `~/.mode-runner/`. The selector remembers the chosen file and checks the directory every second while the popover is visible. Only projects from the selected configuration appear. Running processes keep working when switching files. `config.overwrite.yaml`, if present, is an ordinary selectable configuration with no special priority.
+Create `~/.mode-runner/config.yaml` and replace the working directory and commands:
 
-## Test applications
-
-`TestApplications` contains three small Yarn projects. The ready-to-use `Examples/test-apps.yaml` configuration creates a tab for each project with two modes:
-
-- `Lab` runs `yarn dev:lab`;
-- `Mock pair` runs `yarn dev:mock` and `yarn mock` in parallel with separate output tabs.
-
-Working directories in YAML are resolved relative to the YAML file. This lets you keep portable configurations alongside the project.
-
-Run the app with the test configuration:
-
-```bash
-MODE_RUNNER_CONFIG="$PWD/Examples/test-apps.yaml" swift run ModeRunner
+```yaml
+tabs:
+  - id: storefront
+    title: Storefront
+    buttons:
+      - id: mock
+        title: Frontend + mock
+        on_deactivate: {sigint: true, sigkill: true, timeout: 2s}
+        scripts:
+          - id: frontend
+            title: Frontend · :3000
+            command: npm run dev
+            cwd: ~/projects/storefront
+          - id: api
+            title: Mock API · :3005
+            command: npm run mock
+            cwd: ~/projects/storefront
 ```
 
-## MVP behavior
+Choose **Reload configuration**, select your file, and press Play. Install each
+project’s usual tools and dependencies first. Working directories are relative
+to the YAML file unless absolute or prefixed with `~`.
+
+The [user guide](Sources/ModeRunnerApp/Resources/Usage.md) covers modes, command
+menus, seeds, pins, and process recovery. It is also available offline from the
+app’s **Documentation** menu.
+
+## Why I built Mode Runner
+
+Mode Runner grew out of my years of working as a frontend developer.
+
+Over my career, I’ve run development servers in terminals and inside editors and
+IDEs such as Cursor, WebStorm, and VS Code. Each approach worked, but none quite
+gave me the everyday workflow I wanted, especially across several projects at once.
+
+A single project often needs a frontend server, a mock API, and perhaps a worker.
+Then there are commands you run occasionally, such as seeders. I wanted one
+convenient place to start them, read their logs, restart individual processes,
+and combine processes from different projects.
+
+That need led me to build Mode Runner. I built it for my own daily work.
+I hope you enjoy using it as much as I do!
+
+— [ilia domyshev](https://github.com/domyshev)
+
+## Development and feedback
+
+Run `./Scripts/test.sh` with Xcode and Node.js installed. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for the development workflow and [RELEASING.md](RELEASING.md) for packaging and signing.
+For bug reports, include your app version, macOS version, architecture, and a
+minimal configuration with secrets removed.
+
+## License
+
+Copyright (c) 2026 ilia domyshev. Licensed under the
+[GNU General Public License v3.0 only](LICENSE) (`GPL-3.0-only`).
+Third-party components retain their own licenses; see [notices](THIRD_PARTY_NOTICES.md).
+
+## Detailed behavior
 
 - Modes within the same top-level tab are mutually exclusive.
 - Selecting a mode changes the displayed logs without starting or stopping processes.

@@ -86,9 +86,10 @@ import Testing
     let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: directory) }
-    let executable = URL(fileURLWithPath: #filePath)
-        .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
-        .appending(path: ".build/debug/ModeRunner")
+    let executable = ProcessInfo.processInfo.environment["MODE_RUNNER_TEST_EXECUTABLE"]
+        ?? Bundle(for: ProcessTestBundle.self).bundleURL.deletingLastPathComponent()
+            .appending(path: "ModeRunner").path
+    #expect(FileManager.default.isExecutableFile(atPath: executable))
     let marker = directory.appending(path: "completed")
     var supervisor: ProcessSupervisor? = ProcessSupervisor { _ in }
     let pid = try await supervisor!.start(runID: "preserved", spec: LaunchSpec(
@@ -97,7 +98,7 @@ import Testing
         cwd: directory.path, environment: [:]
     ))
     defer { killpg(pid, SIGKILL) }
-    try await supervisor!.preserveOutput(executablePath: executable.path)
+    try await supervisor!.preserveOutput(executablePath: executable)
     supervisor = nil
     for _ in 0..<100 {
         if FileManager.default.fileExists(atPath: marker.path) { break }
@@ -151,3 +152,5 @@ private func waitForTerminalEvent(runID: String, events: EventCollector) async t
 }
 
 private struct TestTimeout: Error {}
+
+private final class ProcessTestBundle: NSObject {}

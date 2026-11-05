@@ -232,16 +232,19 @@ public actor ProcessSupervisor {
     }
 
     private func waitForExit(runID: String, pid: pid_t) {
-        Task.detached { [weak self] in
+        // waitpid blocks until the child exits. Never occupy Swift's cooperative
+        // executor: a few long-running servers can otherwise starve start/stop tasks.
+        DispatchQueue.global(qos: .utility).async { [weak self] in
             var status: Int32 = 0
             var result: pid_t
             repeat { result = waitpid(pid, &status, 0) } while result < 0 && errno == EINTR
             guard result > 0 else {
                 let code = errno
-                await self?.waitFailed(runID: runID, code: code)
+                Task { await self?.waitFailed(runID: runID, code: code) }
                 return
             }
-            await self?.didExit(runID: runID, rawStatus: status)
+            let exitStatus = status
+            Task { await self?.didExit(runID: runID, rawStatus: exitStatus) }
         }
     }
 

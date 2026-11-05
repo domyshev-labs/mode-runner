@@ -45,9 +45,9 @@ import Testing
     try sibling.run()
     defer {
         if root.isRunning { kill(root.processIdentifier, SIGKILL) }
-        if sibling.isRunning { sibling.terminate() }
-        root.waitUntilExit()
-        sibling.waitUntilExit()
+        if sibling.isRunning { kill(sibling.processIdentifier, SIGKILL) }
+        // Foundation reaps these children asynchronously. Blocking a Swift
+        // cooperative worker in waitUntilExit can stall its exit notification.
     }
     let childFile = directory.appending(path: "child.pid")
     for _ in 0..<100 {

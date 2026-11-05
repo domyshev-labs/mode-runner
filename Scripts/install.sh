@@ -25,33 +25,14 @@ if [[ ! -d "${DEVELOPER_DIRECTORY}" ]]; then
     exit 1
 fi
 
-print "Building Mode Runner in release mode..."
-(
-    cd "${PROJECT_DIRECTORY}"
-    DEVELOPER_DIR="${DEVELOPER_DIRECTORY}" xcrun swift build -c release --product ModeRunner
-)
-
-BIN_DIRECTORY="$(
-    cd "${PROJECT_DIRECTORY}"
-    DEVELOPER_DIR="${DEVELOPER_DIRECTORY}" xcrun swift build -c release --show-bin-path
-)"
-
-# Build the entire replacement before touching either installed app bundle.
+# Reuse the same app assembly as the downloadable release.
+export DEVELOPER_DIR="${DEVELOPER_DIRECTORY}"
+export MODE_RUNNER_ARCHITECTURES="${MODE_RUNNER_ARCHITECTURES:-$(uname -m)}"
 mkdir -p "${INSTALL_DIRECTORY}"
-STAGING_BUNDLE="$(mktemp -d "${INSTALL_DIRECTORY}/.ModeRunner.XXXXXX")/Mode Runner.app"
-trap 'rm -rf "${STAGING_BUNDLE:h}"' EXIT
-CONTENTS_DIRECTORY="${STAGING_BUNDLE}/Contents"
-mkdir -p "${CONTENTS_DIRECTORY}/MacOS" "${CONTENTS_DIRECTORY}/Resources"
-install -m 755 "${BIN_DIRECTORY}/ModeRunner" "${CONTENTS_DIRECTORY}/MacOS/ModeRunner"
-install -m 644 "${PROJECT_DIRECTORY}/Packaging/Info.plist" "${CONTENTS_DIRECTORY}/Info.plist"
-cp -R "${BIN_DIRECTORY}/ModeRunner_ModeRunnerApp.bundle" "${CONTENTS_DIRECTORY}/Resources/"
-
-ICONSET_DIRECTORY="${BIN_DIRECTORY}/AppIcon.iconset"
-DEVELOPER_DIR="${DEVELOPER_DIRECTORY}" xcrun swift "${PROJECT_DIRECTORY}/Scripts/generate-icon.swift" "${ICONSET_DIRECTORY}"
-iconutil -c icns "${ICONSET_DIRECTORY}" -o "${CONTENTS_DIRECTORY}/Resources/AppIcon.icns"
-
-codesign --force --deep --sign - "${STAGING_BUNDLE}"
-codesign --verify --deep --strict "${STAGING_BUNDLE}"
+STAGING_DIRECTORY="$(mktemp -d "${INSTALL_DIRECTORY}/.ModeRunner.XXXXXX")"
+trap 'rm -rf "${STAGING_DIRECTORY}"' EXIT
+"${SCRIPT_DIRECTORY}/build-app.sh" "${STAGING_DIRECTORY}"
+STAGING_BUNDLE="${STAGING_DIRECTORY}/Mode Runner.app"
 
 # Only replace a bundle owned by this project.
 for EXISTING_BUNDLE in "${APP_BUNDLE}" "${LEGACY_APP_BUNDLE}"; do
@@ -83,7 +64,7 @@ fi
 mdimport "${APP_BUNDLE}" || print -u2 "Could not refresh Spotlight metadata."
 
 print "Installed: ${APP_BUNDLE}"
-"${SCRIPT_DIRECTORY}/install-example.sh" "${HOME}/.mode-runner"
+# The app installs starter files on first launch, including after a DMG install.
 print "Configurations: ${HOME}/.mode-runner/config.yaml or config.{name}.yaml"
 print "Open the app from Finder or run:"
 print "  open '${APP_BUNDLE}'"

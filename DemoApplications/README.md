@@ -64,7 +64,7 @@ node --test DemoApplications/shared/demo.test.mjs
 
 Mode Runner discovers `~/.mode-runner/config.yaml` and `~/.mode-runner/config.{name}.yaml`. The selector sorts by the optional `sort_order`, then filename. Hover a file to see its complete path, or use the copy button beside it. Selecting a file loads only that file; configurations are never merged and there is no automatic overwrite behavior.
 
-On a fresh installation the installer creates only `config.example.yaml` and copies these demo sources to `~/.mode-runner/DemoApplications/`. Install dependencies separately in each copied application with `yarn install --frozen-lockfile`. The example can be deleted manually and will not be recreated on later installs.
+On a fresh installation, the downloaded app creates `config.welcome.yaml` for the small starter websites and `config.example.yaml` for these science demos. It copies these demo sources to `~/.mode-runner/DemoApplications/`. Install dependencies separately in each copied application with `yarn install --frozen-lockfile`. The example can be deleted manually and will not be recreated on later installs.
 
 To add the repository demo setup to an existing configuration directory:
 

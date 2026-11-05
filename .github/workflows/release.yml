@@ -1,0 +1,86 @@
+name: Signed beta release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Beta version without v (for example 0.1.0-beta.1)
+        required: true
+        default: 0.1.0-beta.1
+permissions:
+  contents: read
+concurrency:
+  group: signed-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: macos-26
+    environment: release
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    env:
+      MODE_RUNNER_VERSION: ${{ inputs.version }}
+      MODE_RUNNER_BUILD_NUMBER: ${{ github.run_number }}
+      MODE_RUNNER_SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+      MODE_RUNNER_NOTARY_PROFILE: mode-runner-notary
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+      - name: Validate version and selected Xcode
+        shell: bash
+        run: |
+          [[ "$MODE_RUNNER_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]] || exit 1
+          echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+      - name: Run tests
+        run: ./Scripts/test.sh
+      - name: Import release signing identity
+        env:
+          CERTIFICATE_P12_BASE64: ${{ secrets.CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${CERTIFICATE_P12_BASE64:?}" "${CERTIFICATE_PASSWORD:?}" "${MODE_RUNNER_SIGNING_IDENTITY:?}"
+          : "${APPLE_ID:?}" "${APPLE_TEAM_ID:?}" "${APPLE_APP_PASSWORD:?}"
+          umask 077
+          KEYCHAIN="$RUNNER_TEMP/mode-runner.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 32)"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          printf '%s' "$CERTIFICATE_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/certificate.p12" -k "$KEYCHAIN" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" "$HOME/Library/Keychains/login.keychain-db"
+          xcrun notarytool store-credentials "$MODE_RUNNER_NOTARY_PROFILE" --keychain "$KEYCHAIN" \
+            --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD"
+          rm "$RUNNER_TEMP/certificate.p12"
+      - name: Build, sign, notarize, and package
+        run: ./Scripts/package-release.sh
+      - name: Generate Homebrew cask
+        run: ./Scripts/generate-cask.sh "$MODE_RUNNER_VERSION" "dist/ModeRunner-${MODE_RUNNER_VERSION}.dmg" > dist/mode-runner.rb
+      - name: Create a draft beta with matching source archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Scripts/package-source.sh
+          gh release create "v$MODE_RUNNER_VERSION" --draft --prerelease --target "$GITHUB_SHA" \
+            --title "Mode Runner $MODE_RUNNER_VERSION" --notes-file Packaging/BETA_RELEASE_NOTES.md \
+            "dist/ModeRunner-${MODE_RUNNER_VERSION}.dmg" "dist/ModeRunner-${MODE_RUNNER_VERSION}.dmg.sha256" \
+            "dist/ModeRunner-${MODE_RUNNER_VERSION}-source.tar.gz" dist/mode-runner.rb
+      - name: Remove temporary signing material
+        if: always()
+        shell: bash
+        run: |
+          security delete-keychain "$RUNNER_TEMP/mode-runner.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/certificate.p12"

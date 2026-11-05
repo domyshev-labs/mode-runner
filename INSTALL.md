@@ -1,145 +1,118 @@
-# Installing Mode Runner on another Mac
+# Install Mode Runner
 
-## Requirements
+Mode Runner is a native macOS menu bar app created by ilia domyshev.
+It requires macOS 14 or later. Public builds target Apple Silicon and Intel;
+macOS 26 and 27 are the current release validation targets.
 
-- macOS 14 Sonoma or newer;
-- Apple Silicon or Intel Mac;
-- full Xcode 26 or newer installation (Xcode 27 recommended for macOS 27);
-- Node.js and Yarn Classic when the configured commands use Yarn.
+## Downloaded application
 
-## 1. Install Xcode
+The first signed beta is being prepared. Once it is available:
 
-Install Xcode 26 or newer from the Mac App Store, launch it once, and accept the license and component installation prompts.
+1. Download the versioned DMG from [GitHub Releases](https://github.com/domyshev-labs/mode-runner/releases).
+2. Open the DMG and drag **Mode Runner** into **Applications**.
+3. Launch Mode Runner from Applications or Spotlight.
+4. Look for its terminal icon in the menu bar. There is no Dock window.
 
-Verify the bundled Swift toolchain without changing the Mac's global developer-directory setting:
+Xcode, Git, and a compiler are not required to use a downloaded build.
+Your configured projects still need their usual tools and installed dependencies.
+Public releases must be signed with Developer ID and notarized by Apple;
+files named `unsigned-preview` are local development artifacts, not public releases.
+
+## First launch
+
+On a fresh installation, Mode Runner copies starter sources and two example
+configurations into `~/.mode-runner/`. It does not start commands or install
+packages automatically, and it preserves existing configurations.
+
+- **config.welcome.yaml**: three small local websites, each with a frontend and mock API. Requires Node.js 22.12+ but no npm dependency installation. Choose a project, press Play, then open the URL from its log. The Seeds menu demonstrates one-off commands by printing their arguments.
+- **config.example.yaml**: richer React science demos with real persisted seed scenarios. These require Yarn Classic 1.22.22 and installation of dependencies in each copied application. See [science demos](DemoApplications/README.md).
+
+To try the welcome workspace, install Node.js using your usual development setup,
+open Mode Runner, select **config.welcome.yaml**, and press Play. The servers bind
+to loopback on ports 3010/3015, 3020/3025, and 3030/3035.
+
+Pin a process log tab, then switch projects or modes to build a combination of
+processes. Stop the running sample mode before configuring your own apps to use
+the same ports.
+
+The first-launch marker prevents examples from being recreated after deletion.
+To restore examples deliberately, copy them from the app bundle's
+`Contents/Resources/ExampleWorkspace` and adjust relative paths as described below.
+
+## Add your own workspace
+
+Create `~/.mode-runner/config.yaml`, using [Examples/config.yaml](Examples/config.yaml)
+as a reference. Replace working directories and commands with your own.
+Relative `cwd` paths resolve from the configuration file's directory.
+
+The selector lists `config.yaml` and `config.{name}.yaml`. Select one file at a time;
+files are independent and never merged. Optional integer `sort_order` values put
+files first in ascending order; ties sort by filename. Configuration additions
+and removals are detected while the workspace is visible. Use **Reload configuration**
+after editing a file's contents.
+
+Commands use an interactive login zsh (`zsh -ilc`) by default, loading `.zprofile`
+and `.zshrc`. This makes tools initialized through NVM and similar setups available
+when launching from Finder. Shell startup files can also print output or run other
+commands. Direct `executable` entries inherit the app's environment: use absolute
+paths and explicit `PATH` settings where needed.
+
+See the [user guide](Sources/ModeRunnerApp/Resources/Usage.md), also available
+through the app's **Documentation** menu, for modes, seeds, pins, and recovery.
+
+## Updates
+
+The first beta uses manual updates. Quit Mode Runner, download the newer signed
+DMG, and replace the app in Applications. Your YAML files and demo state are stored
+outside the bundle and are preserved. No automatic updater is included yet.
+
+When quitting, choose whether to terminate managed processes. Processes kept
+running can be detected on the next launch, but their previous logs are unavailable.
+
+## Build from source
+
+For contributors and local development only:
+
+- Full Xcode 26 or later; use Xcode 27 when building against its SDK.
+- Node.js 22.12+ for the bundled server tests.
+- Git and internet access to fetch the pinned Yams dependency.
 
 ```bash
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  xcrun swift --version
-```
-
-## 2. Install Node.js and Yarn Classic
-
-If Homebrew is already installed:
-
-```bash
-brew install node
-npm install -g yarn@1.22.22
-```
-
-Alternatively, install the current Node.js LTS package from [nodejs.org](https://nodejs.org/), then install Yarn:
-
-```bash
-npm install -g yarn@1.22.22
-```
-
-Verify both commands:
-
-```bash
-node --version
-yarn --version
-```
-
-The expected Yarn version is `1.22.22`.
-
-## 3. Copy or clone the project
-
-Clone the repository when a remote is available, or copy the entire project directory to the other Mac. Then enter it:
-
-```bash
-cd /path/to/script-mode-runner
-```
-
-## 4. Build and test
-
-```bash
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  xcrun swift test
-```
-
-This downloads the pinned Yams dependency and runs the process, mock-pair, and AppKit log-viewer tests.
-
-## 5. Install the app
-
-Run the local installer:
-
-```bash
+git clone https://github.com/domyshev-labs/mode-runner.git
+cd mode-runner
+./Scripts/test.sh
 ./Scripts/install.sh
+open "$HOME/Applications/Mode Runner.app"
 ```
 
-It builds a release executable, creates `Mode Runner.app`, applies an ad-hoc local signature, and installs it to:
+Scripts default to `/Applications/Xcode.app/Contents/Developer`; set `DEVELOPER_DIR`
+to use another full Xcode installation. There is no need to change the global
+`xcode-select` setting.
 
-```text
-~/Applications/Mode Runner.app
-```
+The local installer uses an ad-hoc signature and the current Mac's architecture.
+To install elsewhere, pass a directory to `./Scripts/install.sh /path/to/Applications`.
+It verifies an existing bundle's identifier before replacing it. Starter files
+are prepared by the app on first launch, including after DMG installation.
 
-To install into a different application directory, pass it as the first argument:
+To build a universal app without installing:
 
 ```bash
-./Scripts/install.sh /Applications
+./Scripts/build-app.sh
 ```
 
-Writing to `/Applications` may require administrator permission. `~/Applications` is recommended for local development builds.
-
-## 6. Configure commands
-
-The installed app reads:
-
-```text
-~/.mode-runner/config.yaml
-```
-
-The header selector lists regular files named `config.yaml` and `config.{name}.yaml` from this directory. Configurations sort by their optional `sort_order`, then filename. Paths are shown on hover and can be copied using the button beside each filename. `MODE_RUNNER_CONFIG` selects a custom file; old directories and environment aliases are not supported.
-
-On a fresh installation, the installer creates only `~/.mode-runner/config.example.yaml`, alongside independent demo sources under `~/.mode-runner/DemoApplications/`. The app selects the example when it is the only configuration. Install each demo's dependencies with `yarn install --frozen-lockfile` before running it. You can delete the example manually; subsequent installations will not recreate it.
-
-To add your own configuration alongside the installed example:
+The result is `dist/Mode Runner.app`. For a local DMG preview:
 
 ```bash
-mkdir -p ~/.mode-runner
-cp Examples/config.yaml ~/.mode-runner/config.yaml
+MODE_RUNNER_PREVIEW=1 ./Scripts/package-release.sh
 ```
 
-Edit every `cwd`, executable, command, and environment value for the new Mac. Relative `cwd` values are resolved from the directory containing the YAML file.
+Public signing and notarization are documented in [RELEASING.md](RELEASING.md).
 
-Commands use an interactive login zsh (`zsh -ilc`) by default, loading `.zprofile` and `.zshrc` so tools initialized there (such as Node and Yarn through NVM) are available when the app starts from Finder. Startup files also run their other commands and may print output. Custom shells other than zsh use `-lc`. Direct `executable` entries inherit the app's environment; use absolute executable paths and configure `PATH` when needed.
+## Troubleshooting
 
-## Running the included test applications
-
-For the repository fixtures, run from Terminal so the example YAML remains next to the fixture directories:
-
-```bash
-MODE_RUNNER_CONFIG="$PWD/Examples/test-apps.yaml" \
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-  xcrun swift run ModeRunner
-```
-
-The three tabs expose:
-
-- `Lab`: one `yarn dev:lab` process;
-- `Mock pair`: a `yarn dev:mock` frontend and a `yarn mock` backend with separate output tabs.
-
-The mock frontend requests `/api/test-data` from its paired backend. The web page and both command logs identify the mock-server number and port.
-
-## Launching the installed app
-
-Open `~/Applications/Mode Runner.app` in Finder. The colored menu bar icon matches the app icon and pulses three times on startup, without opening a notification. Reduce Motion disables the animation. The installed bundle includes an app icon for Finder and Spotlight; the app does not create a Dock icon.
-
-Because this is a locally built, ad-hoc-signed application, another Mac may ask for confirmation the first time it is opened. A public build should use a Developer ID signature and Apple notarization instead.
-
-## Updating
-
-Pull or copy the newer source tree and rerun:
-
-```bash
-./Scripts/install.sh
-```
-
-Power off the running app before updating. Select **Terminate processes** in the confirmation dialog if its managed processes should also stop. The installer builds and verifies a complete replacement bundle before installing it. It replaces an existing Mode Runner bundle and removes the former Script Mode Runner bundle after verifying that it belongs to this project. It refreshes Launch Services registration and Spotlight metadata so in-place updates can be discovered. Spotlight may retain its displayed icon until the search is reopened. It does not overwrite the user's YAML configuration.
-
-Configurations with a top-level integer `sort_order` appear first, ordered by increasing value. Files without this property appear below all explicitly ordered files. Equal priorities sort by filename, with `config.yaml` first within that group. Negative values are supported. The list updates while the popover is visible when editing priorities changes the order.
-
-```yaml
-sort_order: 10
-tabs: []
-```
+- **No visible app window:** use the terminal icon in the macOS menu bar.
+- **Node or another command is missing:** install the tool and check your login shell setup. Mode Runner does not install project runtimes.
+- **A sample port is occupied:** stop the existing process or edit the sample configuration to use different ports.
+- **No configuration:** inspect `~/.mode-runner/` and reload. An existing workspace is never replaced with examples.
+- **Wrong configuration when developing:** launch with `MODE_RUNNER_CONFIG="$PWD/Examples/config.welcome.yaml"` and a built executable. This explicit setting skips first-launch setup.
+- **A downloaded release fails Gatekeeper validation:** report its version and filename. Public releases should work with normal macOS protections enabled.
