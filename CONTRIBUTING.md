@@ -1,6 +1,7 @@
 # Contributing
 
-Mode Runner is created and maintained by ilia domyshev in domyshev-labs.
+Mode Runner is created and maintained by ilia domyshev at
+[domyshev/mode-runner](https://github.com/domyshev/mode-runner).
 Bug reports, focused fixes, and feedback from real development workflows are welcome.
 
 ## Development

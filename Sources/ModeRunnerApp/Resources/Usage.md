@@ -79,7 +79,7 @@ A button with `source` opens a command menu. These commands run alongside the cu
 
 Use `runner: [npm, run]` or `[pnpm, run]` for another package manager. Select a menu item to run it and open its log tab. Menus refresh when opened with the mouse; **Refresh** reloads a catalog manually. Repeated script selections create separate runs.
 
-Seed catalogs use `json_file`, `command`, or `seed_module` sources. A seed item may ask for an additional argument before starting. Seed commands cannot overlap in the same working directory. The project's [README](https://github.com/domyshev-labs/mode-runner#command-menus-and-logs) includes the catalog format and configuration examples.
+Seed catalogs use `json_file`, `command`, or `seed_module` sources. A seed item may ask for an additional argument before starting. Seed commands cannot overlap in the same working directory. The project's [README](https://github.com/domyshev/mode-runner#command-menus-and-logs) includes the catalog format and configuration examples.
 
 ## Quit, restart, and existing processes
 
@@ -98,7 +98,7 @@ Existing processes display a detection message instead of captured output: their
 - **A process is not detected:** provide `cwd` and an exact command. A listening port alone is insufficient to identify a process.
 - **No output for a detected process:** this is expected; restart it through Mode Runner to capture new output.
 
-For building, installing, and updating the app, see the project's [installation guide](https://github.com/domyshev-labs/mode-runner/blob/main/INSTALL.md). Source code and configuration examples are on [GitHub](https://github.com/domyshev-labs/mode-runner).
+For building, installing, and updating the app, see the project's [installation guide](https://github.com/domyshev/mode-runner/blob/main/INSTALL.md). Source code and configuration examples are on [GitHub](https://github.com/domyshev/mode-runner).
 
 
 The configuration selector to the left of the actions menu lists files `config.yaml` and `config.{name}.yaml` from `~/.mode-runner/`. Hover a filename to see its full path; use its copy button to copy the path. Selection is remembered, and adding or removing files updates the list while the popover is visible. Only projects from the selected file are shown. The downloaded app provides `config.welcome.yaml` and `config.example.yaml` once on a fresh installation. It can be deleted manually. There is no overwrite mechanism: `overwrite` is just an ordinary configuration name. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.

@@ -159,8 +159,8 @@ private struct RunnerAboutView: View {
             Text(version).font(.caption).foregroundStyle(.secondary)
             Text("Run local command groups from your menu bar.").foregroundStyle(.secondary)
             Text("Created by ilia domyshev")
-            Link("GitHub · domyshev-labs/mode-runner",
-                 destination: URL(string: "https://github.com/domyshev-labs/mode-runner")!)
+            Link("GitHub · domyshev/mode-runner",
+                 destination: URL(string: "https://github.com/domyshev/mode-runner")!)
         }
         .textSelection(.enabled)
         .padding(28)
