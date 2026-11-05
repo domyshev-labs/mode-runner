@@ -8,7 +8,7 @@ macOS 26 and 27 are the current release validation targets.
 
 The first signed beta is being prepared. Once it is available:
 
-1. Download the versioned DMG from [GitHub Releases](https://github.com/domyshev-labs/mode-runner/releases).
+1. Download the versioned DMG from [GitHub Releases](https://github.com/domyshev/mode-runner/releases).
 2. Open the DMG and drag **Mode Runner** into **Applications**.
 3. Launch Mode Runner from Applications or Spotlight.
 4. Look for its terminal icon in the menu bar. There is no Dock window.
@@ -78,7 +78,7 @@ For contributors and local development only:
 - Git and internet access to fetch the pinned Yams dependency.
 
 ```bash
-git clone https://github.com/domyshev-labs/mode-runner.git
+git clone https://github.com/domyshev/mode-runner.git
 cd mode-runner
 ./Scripts/test.sh
 ./Scripts/install.sh

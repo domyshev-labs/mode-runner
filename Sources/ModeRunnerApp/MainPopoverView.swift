@@ -381,7 +381,7 @@ struct MainPopoverView: View {
                             .frame(height: 22)
                             .runnerGlass(radius: 7, tint: state.selectedOutputID == run.id ? .accentColor.opacity(0.18) : nil,
                                          interactive: true)
-                            .background(ProcessTabTooltip(script: run.script, mode: state.processModeTitle(run))).id(run.id)
+                            .background(ProcessTabTooltip(state: state, run: run)).id(run.id)
                         }
                       }
                       .padding(2)
@@ -399,29 +399,8 @@ struct MainPopoverView: View {
                     Text(log.status?.displayText ?? "Not running").font(.caption).foregroundStyle(.secondary)
                     Text("· \(log.buffer.count) bytes").font(.caption).foregroundStyle(.tertiary)
                     Spacer()
-                    if state.startingRuns.contains(id) ||
-                        (log.status?.isRunning == false && !state.restartingRuns.contains(id) && !state.stoppingRuns.contains(id)) {
-                        ProcessActionButton(title: "Start", loading: state.startingRuns.contains(id)) {
-                            state.startSelected()
-                        }
-                        .help("Start the selected command")
-                        .disabled(!state.canStartSelected)
-                    } else if log.status?.isRunning == true || state.restartingRuns.contains(id) || state.stoppingRuns.contains(id) {
-                        ProcessActionButton(title: "Reload", loading: state.restartingRuns.contains(id)) {
-                            state.reloadSelected()
-                        }
-                            .help("Restart the selected command")
-                            .disabled(log.status == .starting || log.status == .stopping ||
-                                      state.restartingRuns.contains(id) || state.stoppingRuns.contains(id) ||
-                                      state.selectedRun.map { state.busyTabs.contains($0.tabID) } == true)
-                        ProcessActionButton(title: "Stop", loading: state.stoppingRuns.contains(id)) {
-                            state.stopSelected()
-                        }
-                        .disabled(log.status == .stopping || state.restartingRuns.contains(id) ||
-                                  state.stoppingRuns.contains(id) ||
-                                  state.selectedRun.map { state.busyTabs.contains($0.tabID) } == true)
-                    }
-                    Button("Clear") { state.clearSelectedLog() }
+                    ProcessRunActions(state: state, runID: id, showIcons: true)
+                        .font(.system(size: 11))
                 }
                 .controlSize(.small)
                 .buttonStyle(LogActionButtonStyle())
@@ -533,9 +512,9 @@ private struct ProjectTabView: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, 8)
             .frame(height: 24)
-            .modifier(ProjectTabSurface(selected: selected || dragging))
+            .modifier(ProjectTabSurface(selected: selected))
             .overlay(SlantedTabShape()
-                .stroke(dropTarget || selected ? Color.accentColor.opacity(0.7) : Color.primary.opacity(0.12),
+                .stroke(selected ? Color.accentColor.opacity(0.7) : Color.primary.opacity(dropTarget ? 0.4 : 0.12),
                         lineWidth: dropTarget ? 2 : 1))
             .contentShape(SlantedTabShape())
     }
@@ -550,11 +529,21 @@ private struct ProjectTabView: View {
 
 private struct ProjectTabSurface: ViewModifier {
     let selected: Bool
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if selected { content.runnerGlass(in: SlantedTabShape(), tint: .accentColor.opacity(0.12), interactive: true) }
-        else { content }
+        content.background {
+            if selected {
+                // Keep selection local to this tab instead of morphing adjacent glass surfaces.
+                if reduceTransparency || contrast == .increased {
+                    SlantedTabShape().fill(Color(nsColor: .controlBackgroundColor))
+                } else {
+                    SlantedTabShape().fill(.regularMaterial)
+                        .overlay(SlantedTabShape().fill(Color.accentColor.opacity(0.12)))
+                }
+            }
+        }
     }
 }
 

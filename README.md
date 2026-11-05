@@ -10,9 +10,9 @@ tabs to keep useful combinations from different projects running side by side.
 Built primarily for frontend developers, and useful for anyone managing local
 servers, workers, and command-line tools.
 
-[Releases](https://github.com/domyshev-labs/mode-runner/releases) ·
+[Releases](https://github.com/domyshev/mode-runner/releases) ·
 [Installation](INSTALL.md) · [User guide](Sources/ModeRunnerApp/Resources/Usage.md) ·
-[Report an issue](https://github.com/domyshev-labs/mode-runner/issues)
+[Report an issue](https://github.com/domyshev/mode-runner/issues)
 
 The first signed beta is being prepared. Downloadable DMGs will appear under
 Releases once signing, notarization, and release validation are complete.
@@ -53,7 +53,7 @@ started or installed automatically.
 To build locally with full Xcode installed:
 
 ```bash
-git clone https://github.com/domyshev-labs/mode-runner.git
+git clone https://github.com/domyshev/mode-runner.git
 cd mode-runner
 ./Scripts/install.sh
 open "$HOME/Applications/Mode Runner.app"

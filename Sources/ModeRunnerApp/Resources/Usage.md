@@ -58,6 +58,7 @@ After saving the file, choose **Reload configuration** in the top-right menu. Ho
 
 - Select a command's log tab to see its output and status. Ports appear as `command • 3015`. Titles stay fully visible while the tabs fit; longer titles shorten with an ellipsis when space is limited. Hover over a tab for aligned `mode:`, `command:`, and `port:` rows showing the launch command and configured port. Scroll horizontally when there are too many tabs to fit comfortably.
 - **Stop** stops the selected command. **Reload** restarts only that command with fresh output. **Start** runs only the selected stopped or completed command. If its configured port is occupied by an unpinned command in another mode, a confirmation lists that command before stopping it. Commands on other ports and pinned processes keep running; a pinned port conflict cancels the start before anything is stopped.
+- Hover a process tab to show its mode, command, and port in a popover below the tab. Move into the popover to use the same **Start**, **Reload**, **Stop**, and **Clear** controls as the output toolbar. These actions control the hovered process without changing the selected log.
 - **Clear** clears the selected output. Configured mode command tabs stay available even after stopping or completing. Only completed command-menu and seed log tabs have a close control.
 - Click HTTP or HTTPS links in output to open them in your default browser. A running process's latest detected URL also appears below its status.
 - Output is kept in memory and bounded: up to 5 MB per process and 100 MB shared across logs. Older output may be discarded; logs are not restored after quitting.
@@ -78,7 +79,7 @@ A button with `source` opens a command menu. These commands run alongside the cu
 
 Use `runner: [npm, run]` or `[pnpm, run]` for another package manager. Select a menu item to run it and open its log tab. Menus refresh when opened with the mouse; **Refresh** reloads a catalog manually. Repeated script selections create separate runs.
 
-Seed catalogs use `json_file`, `command`, or `seed_module` sources. A seed item may ask for an additional argument before starting. Seed commands cannot overlap in the same working directory. The project's [README](https://github.com/domyshev-labs/mode-runner#command-menus-and-logs) includes the catalog format and configuration examples.
+Seed catalogs use `json_file`, `command`, or `seed_module` sources. A seed item may ask for an additional argument before starting. Seed commands cannot overlap in the same working directory. The project's [README](https://github.com/domyshev/mode-runner#command-menus-and-logs) includes the catalog format and configuration examples.
 
 ## Quit, restart, and existing processes
 
@@ -97,7 +98,7 @@ Existing processes display a detection message instead of captured output: their
 - **A process is not detected:** provide `cwd` and an exact command. A listening port alone is insufficient to identify a process.
 - **No output for a detected process:** this is expected; restart it through Mode Runner to capture new output.
 
-For building, installing, and updating the app, see the project's [installation guide](https://github.com/domyshev-labs/mode-runner/blob/main/INSTALL.md). Source code and configuration examples are on [GitHub](https://github.com/domyshev-labs/mode-runner).
+For building, installing, and updating the app, see the project's [installation guide](https://github.com/domyshev/mode-runner/blob/main/INSTALL.md). Source code and configuration examples are on [GitHub](https://github.com/domyshev/mode-runner).
 
 
 The configuration selector to the left of the actions menu lists files `config.yaml` and `config.{name}.yaml` from `~/.mode-runner/`. Hover a filename to see its full path; use its copy button to copy the path. Selection is remembered, and adding or removing files updates the list while the popover is visible. Only projects from the selected file are shown. The downloaded app provides `config.welcome.yaml` and `config.example.yaml` once on a fresh installation. It can be deleted manually. There is no overwrite mechanism: `overwrite` is just an ordinary configuration name. `MODE_RUNNER_CONFIG` can select a custom file when launching from Terminal.

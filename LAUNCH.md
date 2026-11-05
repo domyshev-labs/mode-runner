@@ -1,6 +1,6 @@
 # Introducing Mode Runner
 
-Author: ilia domyshev. Project: https://github.com/domyshev-labs/mode-runner.
+Author: ilia domyshev. Project: https://github.com/domyshev/mode-runner.
 Use these materials only after a signed beta download is published and verified.
 Do not publish claims about telemetry, performance, or OS compatibility that have
 not been checked for the released build.
@@ -48,7 +48,7 @@ It started as a tool for my own daily work. I’m sharing the first beta because
 I’d like to hear whether it makes your development workflow easier too.
 
 Source, installation, and downloads:
-https://github.com/domyshev-labs/mode-runner
+https://github.com/domyshev/mode-runner
 
 Created by ilia domyshev. GPLv3.
 
