@@ -19,10 +19,10 @@ The first signed and notarized beta is available as a prerelease on GitHub:
 
 ## Screenshots
 
-The example workspace brings project tabs, development modes, and seed commands
-together in the menu bar.
+The example workspace runs a React frontend and mock API together, with
+individual process controls, a local URL, and live logs in the menu bar.
 
-<img src="docs/images/workspace-idle.png" alt="Mode Runner example workspace with project tabs, mode controls, and the Seeds menu" width="900">
+<img src="docs/images/workspace-running.png" alt="Mode Runner running a React frontend and mock API with process controls, a local URL, and live logs" width="900">
 
 The actions menu provides configuration reload, settings, About, documentation,
 and controls to quit or restart the app.

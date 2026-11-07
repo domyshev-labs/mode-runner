@@ -21,7 +21,7 @@ tab and switch projects to combine processes from different applications.
 
 ## Screenshots
 
-<img src="https://raw.githubusercontent.com/domyshev/mode-runner/main/docs/images/workspace-idle.png" alt="Mode Runner example workspace with project tabs, mode controls, and the Seeds menu" width="900">
+<img src="https://raw.githubusercontent.com/domyshev/mode-runner/main/docs/images/workspace-running.png" alt="Mode Runner running a React frontend and mock API with process controls, a local URL, and live logs" width="900">
 
 <img src="https://raw.githubusercontent.com/domyshev/mode-runner/main/docs/images/actions-menu.png" alt="Mode Runner actions menu with configuration reload, settings, documentation, restart, and quit" width="360">
 
