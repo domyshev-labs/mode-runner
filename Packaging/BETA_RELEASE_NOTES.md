@@ -19,6 +19,12 @@ The starter websites need Node.js 22.12+ with no npm dependencies to install.
 Use Seeds for a one-off command, restart an individual process, then pin a process
 tab and switch projects to combine processes from different applications.
 
+## Screenshots
+
+<img src="https://raw.githubusercontent.com/domyshev/mode-runner/main/docs/images/workspace-running.png" alt="Mode Runner running a React frontend and mock API with process controls, a local URL, and live logs" width="900">
+
+<img src="https://raw.githubusercontent.com/domyshev/mode-runner/main/docs/images/actions-menu.png" alt="Mode Runner actions menu with configuration reload, settings, documentation, restart, and quit" width="360">
+
 ## Beta limitations
 
 - Configuration is edited in YAML; there is no visual project editor yet.

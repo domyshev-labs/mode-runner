@@ -33,6 +33,23 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 Apple documentation: [Developer ID](https://developer.apple.com/developer-id/),
 [notarization](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
 
+## DMG presentation tooling
+
+Packaging requires Python 3.10 or later (CI selects Python 3.12). Set
+`MODE_RUNNER_DMG_PYTHON=/path/to/python3` if the default `python3` is older.
+`Scripts/create-dmg.sh` installs the hash-pinned tooling in a temporary virtual
+environment, so packaging needs access to PyPI. No global Python packages or
+Finder Automation permission are required.
+
+The Finder window places Mode Runner on the left and Applications on the right,
+with a Retina background, an installation arrow, and instructions to copy, eject,
+and launch. Read Me remains available in the lower-right corner. Layout is defined
+in `Packaging/dmg-settings.py`; artwork is generated from
+`Scripts/generate-dmg-background.swift`. The DMG is assembled before the existing
+signing, notarization, and checksum steps. `Scripts/verify-dmg.sh` mounts the
+result read-only and checks the embedded app's signature and required content
+before the DMG is signed. App bundle Finder metadata is left untouched.
+
 ## Build a signed release locally
 
 ```bash

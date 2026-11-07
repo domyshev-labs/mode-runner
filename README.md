@@ -17,6 +17,18 @@ servers, workers, and command-line tools.
 The first signed and notarized beta is available as a prerelease on GitHub:
 [Mode Runner 0.1.0-beta.1](https://github.com/domyshev/mode-runner/releases/tag/v0.1.0-beta.1).
 
+## Screenshots
+
+The example workspace runs a React frontend and mock API together, with
+individual process controls, a local URL, and live logs in the menu bar.
+
+<img src="docs/images/workspace-running.png" alt="Mode Runner running a React frontend and mock API with process controls, a local URL, and live logs" width="900">
+
+The actions menu provides configuration reload, settings, About, documentation,
+and controls to quit or restart the app.
+
+<img src="docs/images/actions-menu.png" alt="Mode Runner actions menu with configuration reload, settings, About, documentation, restart, and quit" width="360">
+
 ## A workspace for the way you develop
 
 - **Several projects at once.** Each project has its own tab and development modes.
