@@ -15,7 +15,7 @@ servers, workers, and command-line tools.
 [Report an issue](https://github.com/domyshev/mode-runner/issues)
 
 The first signed and notarized beta is available as a prerelease on GitHub:
-[Mode Runner 0.1.0-beta.1](https://github.com/domyshev/mode-runner/releases/tag/v0.1.0-beta.1).
+[Mode Runner 0.1.0-beta.2](https://github.com/domyshev/mode-runner/releases/tag/v0.1.0-beta.2).
 
 ## Screenshots
 
@@ -47,7 +47,7 @@ The downloadable build targets both Apple Silicon and Intel.
 
 ## Install and try it
 
-Download `ModeRunner-0.1.0-beta.1.dmg` from the [beta release](https://github.com/domyshev/mode-runner/releases/tag/v0.1.0-beta.1),
+Download `ModeRunner-0.1.0-beta.2.dmg` from the [beta release](https://github.com/domyshev/mode-runner/releases/tag/v0.1.0-beta.2),
 open it, drag **Mode Runner** into **Applications**, and open it. Look for its terminal icon in the menu bar;
 there is no Dock window. Xcode is needed only to build from source.
 

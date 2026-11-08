@@ -8,7 +8,7 @@ macOS 26 and 27 are the current release validation targets.
 
 The first signed and notarized beta is available as a GitHub prerelease:
 
-1. Download `ModeRunner-0.1.0-beta.1.dmg` from the [beta release](https://github.com/domyshev/mode-runner/releases/tag/v0.1.0-beta.1).
+1. Download `ModeRunner-0.1.0-beta.2.dmg` from the [beta release](https://github.com/domyshev/mode-runner/releases/tag/v0.1.0-beta.2).
 2. Open the DMG and drag **Mode Runner** into **Applications**.
 3. Launch Mode Runner from Applications or Spotlight.
 4. Look for its terminal icon in the menu bar. There is no Dock window.
